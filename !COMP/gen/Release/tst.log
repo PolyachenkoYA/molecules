@@ -1,0 +1,112 @@
+generation session #1127071543
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+generation session #528198427
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+generation session #910509159
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+generation session #530731607
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+generation session #560690987
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+generation session #99446439
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+generation session #1757983809
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+generation session #482516338
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+      ... particles generation DONE
+   }
+      SaveStars (./tst_particles.prt){
+         Header was written
+         Stars were written
+      }(./tst_particles.prt)
+   SaveParams(./tst_param.dat){
+      text part was written
+      numeric part was written
+   }
+all is ok (gen #482516338)
+generation session #1109237427
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+(m <V^2>) / (3T) = 0.999881      ... particles generation DONE
+   }
+      SaveStars (./tst_particles.prt){
+         Header was written
+         Stars were written
+      }(./tst_particles.prt)
+   SaveParams(./tst_param.dat){
+      text part was written
+      numeric part was written
+   }
+all is ok (gen #1109237427)
