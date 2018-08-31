@@ -1,0 +1,2 @@
+          Ntot           k12            k6             R         r_max          endT        totalT        dumpDT            dt           Tmp            mu            kv       dissipK    TmpStabEps    TmpStabGap      compMode       binOutF
+          4096             1             1            10           2.5             1             0             8          1024       2.43785            29           0.2          0.01          0.03             1            -2             0
