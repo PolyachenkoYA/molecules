@@ -1,1 +1,1 @@
-rsync -av --exclude='RES/DATA/*' --exclude='ovito-2.9.0-x86_64/*' --exclude='SERVER/*' ./* ~/WinMyUser/SAVES/molecules/$1
+rsync -av --exclude='RES/DATA/*' --exclude='/RES/ARCHIVE/*' --exclude='ovito-2.9.0-x86_64/*' --exclude='SERVER/*' ./* ~/WinMyUser/SAVES/molecules/$1
