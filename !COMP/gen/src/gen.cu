@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 		string b_s;
 
 		if(sayError(Space.LogFName, Space.SafeLoadParams(&b_s),"LoadParams")) return 1;
-		Space.thermostatOn = (Space.dissipK > 0);
+		Space.thermostatOn = (Space.dissipK > 0) && (Space.TmpStabGap > 0);
 		Space.dissipK = std::abs(Space.dissipK);
 
 		if(sayError(Space.LogFName, Space.CreateParticles(),"SetupStars")) return 1;
@@ -41,7 +41,8 @@ int main(int argc, char* argv[])
 		Space.sayLog("all is ok | gen " + Space.sessionID);
 	} else {
     	cout << "Format is:\n"
-    		 <<	"./script_name galaxy_name\n";
+    		 <<	argv[0] << " model_name\n";
+    	print_sys_info(cout);
     	return 1;
 	}
     return 0;

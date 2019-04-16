@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+#!/home/ypolyach/anaconda3/bin/python3 -tt
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -35,7 +35,7 @@ def main():
         print('usage: ./condition.py    model_name     [N0,     N1,     R/dr]')
         sys.exit(1)
     
-    model_name, keys, graph_dir, time_gaps_str, N0, N1, Nfrm, E, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 1, 2, 3)
+    model_name, keys, model_dir, graph_dir, time_gaps_str, N0, N1, Nfrm, E, P, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 1, 2, 3)
     # std_start(args, model_i, N0_i, N1_i):
     # model_name, keys, graph_dir, time_gaps_str, N0, N1, Nfrm, E, Tmp, Tmp_av, t, stabTind, params
     
@@ -75,8 +75,11 @@ def main():
     y0 = [math.exp(-my.phi_r(_x)) for _x in x_dr]
     
     path = os.path.join(graph_dir, 'g(t)_' + time_gaps_str + '.png')
-    fig_c, fig = my.plot_error(fig_c, fig, x_dr, y_gFnc, y0=1, y_th=y0, y_lbl='n/n0', pic_path=path, show_key=draw_on_screen)
+    fig_c, fig = my.plot_error(fig_c, fig, x_dr, y_gFnc, y0=1, y_th=y0, x_lbl='r', y_lbl='n/n0', pic_path=path, filter_rng=round(params['R']/Nslice/0.05 + 0.5), draw_linfit='n', show_key=draw_on_screen)
     
+    if(draw_on_screen):
+        input()
+
     
 # This is the standard boilerplate that calls the main() function.
 if __name__ == '__main__':

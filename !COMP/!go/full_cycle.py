@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+#!/home/ypolyach/anaconda3/bin/python3 -tt
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -42,13 +42,14 @@ def main():
     if(not my.run_it('./comp ' + model_name + '            ')):
         return
 
-    my.run_it('mv ' + model_name + '_gen.log ' + os.path.join('./', model_name, 'gen.log') +  '            ')
+    if(my.find_key(keys, 'gen')):
+        my.run_it('mv ' + model_name + '_gen.log ' + os.path.join('./', model_name, 'gen.log') +  '            ')
     
-    if(not my.run_it('./post_proc ' + model_name + ' 1' + '                               ')):
-        return
+    #if(not my.run_it('./post_proc ' + model_name + ' 1' + '                               ')):
+    #    return
     
     if(my.find_key(keys, 'cond') or my.find_key(keys, 'condition')):
-        if(not my.run_it('./post_proc ' + model_name + ' 3 1000' + '                                 ')):
+        if(not my.run_it('./post_proc ' + model_name + ' 3 150' + '                                 ')):
             return
     
     if(my.find_key(keys, 'pics') or my.find_key(keys, 'keep') or my.find_key(keys, 'move_res')):

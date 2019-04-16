@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+#!/home/ypolyach/anaconda3/bin/python3 -tt
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -20,7 +20,7 @@ def main():
     argc_min = 2
     argc = len(args)
     if((argc < argc_min) or (argc % 2 != 0)):
-        print('usage: ./change_params.py      old_name      new_name     [prm_name1   prm1   prm_name2   prm2 ...]')
+        print('usage: ./change_params.py      old_name      new_name     [key1   value1   key2   value2 ...]')
         sys.exit(1)
     
     old_name = args[0] + '_param.dat'

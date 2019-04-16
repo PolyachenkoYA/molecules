@@ -14,8 +14,8 @@
 #include "general_math.cuh"
 #include "format.cuh"
 
-__global__ void cudaFindAllA(double3 *devX, double3 *devA, double m, double R, double r_brd, int Ntot);
-__global__ void cudaFindE(double3 *devX, double3 *devV, double2 *devE, double m, double R, double r_brd, int Ntot);
+__global__ void kernel_FindAllA(double3 *devX, double3 *devA, double *devPressure, double R, double r_cut, int Ntot);
+__global__ void kernel_FindE(double3 *devX, double3 *devV, double2 *devE, double R, double r_cut, int Ntot);
 
 class TSpace;
 
@@ -25,34 +25,36 @@ class TSpace{
 public:
 	// ---------- Parameters ----------
 	//double Tnow,BigDt,CalcedT,Tmp,dt,StartDt,CalcedT0,eff;
-	double localT, dumpDT, totalT, totalT0, endT, dt, eff;
-	double a, R, k12, k6, kv, dissipK, TmpStabEps, r_brd;
-	double Tmp, mu, CONST_R, CONST_k, CONST_Na, Tmp_curr;
+	double localT, dumpDT, endT, glob_time, dt, eff, n, pressure;
+	double R, dissipK, TmpStabEps, r_cut2, n_cr;
+	double Tmp, CONST_R, CONST_k, CONST_Na, Tmp_curr;
 	int TmpStabGap;
-	bool thermostatOn;
+	bool thermostatOn, start_crystal_lattice;
+	bool Ek_is_valid, Ep_is_valid, P_is_valid, VX_synced_for_print;
 
 	// ------ Data for computation ------
 	// nCudaB - number of active CUDA blocks
-	double3 *devX, *hostX;
+	double *devPressure, *hostPressure;
+	double3 *devX, *hostX, *hostXreal;
 	double3 *devV, *hostV;
 	double3 *devA, *hostA;
 	double3 *hostF;
 	double3 *hostOldX;
 	double3 **hostVK, **hostRK;
 	double2 *devE, *hostE;
-	double *devM, *hostM;
 	double2 E;
-	double3 L;
+	double3 L, Xcm;
 	double *gCondFnc;
 	int Nslice;
 
 	// ---------- Format stuff ----------
-	bool binOutF, useCuda, thermostatIsOn;
+	bool binOutF, useCuda;
 	int Fnum, Ntot, nCudaB, Nfrm;
 	time_t rt, ct; // timer display
 	int compMode;
-	string sessionID;
-	string ConvFName, GlxName, PrmFName, SGname, HeadFName, StpFName, LogFName, LFile, EFile, TFile, ParticleFileExt, ConditionFNameBase, FramesFilesFolder;
+	string sessionID, compModeStr;
+	string ConvFName, GlxName, PrmFName, SGname, HeadFName, StpFName, LogFName,
+		   LFile, EFile, TFile, ParticleFileExt, ConditionFNameBase, FramesFilesFolder, PFile;
 	vector<string> ParamFHead;
 	vector<string> GalaxyFHead;
 
@@ -80,33 +82,34 @@ public:
 	// -------- main computations --------
 	int main_compute(void);
 	int doTimeStep(int cmpMode);
-	double3 findA(double3 crd1, unsigned long int N);
-	int findAllA(void);
+	int CPU_findAllA(void);
 	int doLstep(void);
 	int doEstep(void);
 	int computeEk(void);
 	int computeEp(void);
+	int computePressure(void);
+	int syncForPrint(void);
+	int restoreForComp(void);
 	int shiftAll(void);
 	int doCondStep(double dr);
 	int stabilizeTmp(void);
 	int useThermostat(void);
 	int stopMacroMovement(void);
+	int saveDump(ofstream &FoutT, ofstream &FoutE, ofstream &FoutP, string &FramePath);
+	double real_time_k(void);
+	int centerCM(void);
+	int findCM(void);
+	int findAllA(void);
 
 	// --------- numeric schemes --------
-	int MYmove(void);
-	int VRmove(void);
-	int LPmove(void);
-	int RKmove(void);
-	int AdVRmove(void);
-	int MyEGmove(void);
+	int stepMY(void);
+	int stepVR(void);
+	int stepLP(void);
+	int stepRK(void);
+	int stepAdVR(void);
 
-	// ------ CUDA numeric schemes -----
-	int cudaMYmove(void);
-	int cudaVRmove(void);
-	int cudaLPmove(void);
-	int cudaRKmove(void);
-	int cudaAdVRmove(void);
-	int cudaDoTimeStep(int cmpMode);
+	// ------ CUDA implementation -----
+	int GPU_findAllA(void);
 	int cudaDoEstep(void);
 };
 

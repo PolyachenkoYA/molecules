@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+#!/home/ypolyach/anaconda3/bin/python3 -tt
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -24,7 +24,7 @@ def main():
         print('usage: ./maxwell.py    model_name    N_V_steps    [keys,    N0,    N1]')
         sys.exit(1)
         
-    model_name, keys, graph_dir, time_gaps_str, N0, N1, Nfrm, E, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 2, 3, 4)
+    model_name, keys, model_dir, graph_dir, time_gaps_str, N0, N1, Nfrm, E, P, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 2, 3, 4)
     # std_start(args, model_i, N0_i, N1_i):
     # model_name, keys, graph_dir, time_gaps_str, N0, N1, Nfrm, E, Tmp, Tmp_av, t, stabTind, params
     
@@ -39,34 +39,35 @@ def main():
         N0 = stabTind
         Nfrm = N1-N0
     
-    Z_sum = math.pow(params['mu']/2/np.pi/Tmp_av, 1.5);
+    Z_sum = math.pow(1/2/np.pi/Tmp_av, 1.5);
     k0 = 2*np.pi*Z_sum
-    v_prob = math.sqrt(2*Tmp_av/params['mu'])
-    v2_prob = Tmp_av/params['mu']
+    v_prob = math.sqrt(2*Tmp_av)
+    v2_prob = Tmp_av
     total_v2 = np.zeros(NV-1)
     total_v = np.zeros(NV-1)
     for n in range(N0,N1):
-        x,v,m = my.read_frame(model_name, n)
+        x,v = my.read_frame(model_name, n)
+        m = np.ones(params['Ntot'])
         
         v2 = my.arrDot(v, v)
         v_abs = my.arrFnc(v2, math.sqrt)
         if(n == N0):
             #v2max = max(v2)
             #v2min = min(v2)
-            v2max = 3*Tmp_av/params['mu']*4
-            v2min = 3*Tmp_av/params['mu']/10
+            v2max = 3*Tmp_av*4
+            v2min = 3*Tmp_av/10
             k_v2 = 1/(params['Ntot']*(v2max-v2min)/NV*Nfrm)
             k_v = 1/(params['Ntot']*(math.sqrt(v2max) - math.sqrt(v2min))/NV*Nfrm)
             v2steps = np.linspace(v2min, v2max, num = NV)
             vsteps = np.linspace(math.sqrt(v2min), math.sqrt(v2max), num = NV)
             x_v2 = [(v2steps[i] + v2steps[i+1])/2 for i in range(NV-1)]
             x_v = [(vsteps[i] + vsteps[i+1])/2 for i in range(NV-1)]            
-            y0_v2 = [k0*math.sqrt(_x)*math.exp(-params['mu']*_x/2/Tmp_av) for _x in x_v2]
-            y0_v = [2*k0*_x*_x*math.exp(-params['mu']*_x*_x/2/Tmp_av) for _x in x_v]
-            #y0_ln = [-params['mu']*_x/2/Tmp_av for _x in x_v2]
+            y0_v2 = [k0*math.sqrt(_x)*math.exp(-_x/2/Tmp_av) for _x in x_v2]
+            y0_v = [2*k0*_x*_x*math.exp(-_x*_x/2/Tmp_av) for _x in x_v]
+            #y0_ln = [-*_x/2/Tmp_av for _x in x_v2]
             y0_ln = []
             for _x in x_v2:
-                _a = params['mu']*_x/2/Tmp_av
+                _a = _x/2/Tmp_av
                 #y0_ln.append(math.log(1-2*_a/3/params['Ntot']) - _a)
                 y0_ln.append(-_a)
             
@@ -95,7 +96,7 @@ def main():
     
     p_lnp = np.poly1d(np.polyfit(x_v2, y_ln, 1));
     k_exp = -p_lnp.c[0]
-    k_th = params['mu']/2/Tmp_av
+    k_th = 1/2/Tmp_av
     #print('k_exp = ', k_exp)
     #print('k_th = ', k_th)
     s = 0
@@ -110,13 +111,14 @@ def main():
     time_gaps_str += ('_NV_' + str(NV))    
     
     path = os.path.join(graph_dir, 'p(v)_' + time_gaps_str + '.png')
-    fig_c, figs = my.plot_error(fig_c, figs, x_v, y_v, y_th=y0_v, x0=v_prob, x_lbl='v', y_lbl='p', pic_path=path, show_key=draw_on_screen)
+    fig_c, figs = my.plot_error(fig_c, figs, x_v, y_v, y_th=y0_v, x0=v_prob, x_lbl='v', y_lbl='p', pic_path=path, draw_linfit='n', show_key=draw_on_screen)
     
     path = os.path.join(graph_dir, 'p(v2)_' + time_gaps_str + '.png')
-    fig_c, figs = my.plot_error(fig_c, figs, x_v2, y_v2, y_th=y0_v2, x0=v2_prob, x_lbl='v^2', y_lbl='p', pic_path=path, show_key=draw_on_screen)
+    fig_c, figs = my.plot_error(fig_c, figs, x_v2, y_v2, y_th=y0_v2, x0=v2_prob, x_lbl='v^2', y_lbl='p', pic_path=path, draw_linfit='n', show_key=draw_on_screen)
 
     path = os.path.join(graph_dir, 'ln_p(v2)_' + time_gaps_str + '.png')
-    fig_c, figs = my.plot_error(fig_c, figs, x_v2, y_ln, y_th=y0_ln, x_lbl='v^2', y_lbl='ln(p)', tit='(ln(p))(v^2) | k_th = ' + my.str_sgn_round(k_th,3) + ',  k_exp = ' + my.str_sgn_round(k_exp,3) + ' | std = ' + my.str_sgn_round(s,3), pic_path=path, show_key=draw_on_screen)
+    #fig_c, figs = my.plot_error(fig_c, figs, x_v2, y_ln, y_th=y0_ln, x_lbl='v^2', y_lbl='ln(p/v^2)', tit='(ln(p/v^2))(v^2) | k_th = ' + my.str_sgn_round(k_th,3) + ',  k_exp = ' + my.str_sgn_round(k_exp,3) + ' | std = ' + my.str_sgn_round(s,3), pic_path=path, show_key=draw_on_screen)
+    fig_c, figs = my.plot_error(fig_c, figs, x_v2, y_ln, y_th=y0_ln, x_lbl='v^2', y_lbl='ln(p/v^2)', tit='k_th = ' + my.str_sgn_round(k_th,3) + ',  k_exp = ' + my.str_sgn_round(k_exp,3) + ' | std = ' + my.str_sgn_round(s,3) + ', k_err = ' + my.str_sgn_round(math.exp(abs(math.log(k_exp/k_th))) - 1, 3) + ', b = ' + my.str_sgn_round(p_lnp.c[1],3), pic_path=path, show_key=draw_on_screen)
     
     path = os.path.join(graph_dir, 'd_p(v)_' + time_gaps_str + '.png')
     fig_c, figs = my.plot_error(fig_c, figs, x_v, dy_v, x0=v_prob, y0=0, x_lbl='v', y_lbl='p/p0-1', pic_path=path, show_key=draw_on_screen)

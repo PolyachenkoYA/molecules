@@ -58,7 +58,7 @@ all: gen
 gen: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: NVCC Linker'
-	/usr/local/cuda-9.2/bin/nvcc --cudart static --relocatable-device-code=false -link -o  "gen" $(OBJS) $(USER_OBJS) $(LIBS)
+	/usr/local/cuda-9.2/bin/nvcc --cudart static --relocatable-device-code=false -gencode arch=compute_50,code=compute_50 -gencode arch=compute_50,code=sm_50 -link -o  "gen" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 

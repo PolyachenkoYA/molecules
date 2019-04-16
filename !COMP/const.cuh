@@ -25,7 +25,8 @@
 #include <cuda_profiler_api.h>
 #include <utility>
 
-#include <math_helper.h>
+//#include <math_helper.h>
+#include "math_helper.h"
 
 using namespace std;
 
@@ -33,13 +34,15 @@ using namespace std;
 
 #define pi 3.14159265359
 #define pi_d2 1.57079631679
-//#define e 2.71828182846
+#define e_const 2.71828182846
 #define SQRT_2 1.41421356237
 #define SQRT_pi 1.77245385090
 #define SQRT_2pi 2.50662827463
 //#define CONST_R 8.31
 //#define Na 6.02E23
 #define SYS_EPS 1E-6
+#define Tmp_triple 0.694
+#define n_triple 0.84
 
 // ------------------------------------- format -----------------------------------------------------
 
@@ -116,6 +119,11 @@ const int MaxN = int(pow(2,31)-1 + 0.5);
 #define IsNanID 900
 #define JustErrID -100
 
+#define YetUnsupportedInput (JustErrID-19)
+#define nCrTooBig (JustErrID-18)
+#define CantCenterCM (JustErrID-17)
+#define AttemptToPrintOutsyncedData (JustErrID-16)
+#define NoValidTforP (JustErrID-15)
 #define TooDenseSystem (JustErrID-14)
 #define WrongCondProcInp (JustErrID-13)
 #define WrongChngParamInp (JustErrID-12)
@@ -136,6 +144,7 @@ const int MaxN = int(pow(2,31)-1 + 0.5);
 #define Nis1 (NID+1)
 #define NLessOrEq0 (NID+2)
 #define NisTooBig (NID+3)
+#define NisntCubeForCristal (NID+4)
 
 #define Qis0_1 (QID+1)
 #define QLess0 (QID+2)
@@ -152,11 +161,12 @@ const int MaxN = int(pow(2,31)-1 + 0.5);
 #define kvLess0 (LessOrEq0ID+10)
 #define ALessOrEq0 (LessOrEq0ID+11)
 #define dissipKless0 (LessOrEq0ID+12)
-#define RbrdLess0 (LessOrEq0ID+13)
+#define RcutLess0 (LessOrEq0ID+13)
 #define TmpLess0 (LessOrEq0ID+14)
 #define muLessEq0 (LessOrEq0ID+15)
 #define TmpStabEps_LessEq0 (LessOrEq0ID+16)
 #define TmpStabGap_Less0 (LessOrEq0ID+17)
+#define nCr_Less0 (LessOrEq0ID+18)
 
 #define WrongVelocities VelocitiesID
 #define SimpleVelocities (VelocitiesID+1)
@@ -189,6 +199,7 @@ const int MaxN = int(pow(2,31)-1 + 0.5);
 #define EkIsInf (IsInfID+18)
 #define EpIsInf (IsInfID+19)
 #define LIsInf (IsInfID+20)
+#define nCrIsInf (IsInfID+21)
 
 #define StarXIsNan (IsNanID+1)
 #define StarMIsNan (IsNanID+2)

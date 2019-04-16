@@ -869,7 +869,7 @@ src/gen.o : ../src/gen.cu \
     /usr/include/c++/5/bits/locale_conv.h \
     /usr/local/cuda-9.2/bin/../targets/x86_64-linux/include/cuda_profiler_api.h \
     /usr/local/cuda-9.2/bin/../targets/x86_64-linux/include/math_helper.h \
-    ./../../format.cu \
     ./../../format.cuh \
+    ./../../format.cu \
     ./../../Space.cu \
     ./../../Space.cuh

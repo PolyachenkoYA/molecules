@@ -6,24 +6,30 @@ template<typename T> void stp(T str)
 	cin.get();
 }
 
-void time_progress(time_t real_start_t, time_t curr_t, double done_part, string proc_name)
+void print_sys_info(ostream &out)
+{
+	out << "sys info:\n"
+		<< "eps = " << SYS_EPS << "\n"
+		<< "CUDA_BlockW = " << BlockW << "\n";
+}
+
+void time_progress(time_t real_start_t, time_t curr_t, double done_part, string proc_name, int extra_strN)
 {
 	time_t real_t = curr_t - real_start_t;
-	double left_t = real_t * (1/done_part - 1);
-	int b_i = int(left_t);
-	time_t b_t = curr_t + b_i;
+	double left_t = done_part > 0 ? real_t * (1 / done_part - 1) : -1;
+	int i, b_i = done_part > 0 ? int(left_t) : -1;
+	time_t b_t = done_part > 0 ? (curr_t + b_i) : -1;
 
-	cout << proc_name << " " << 100*done_part << " %          \n"
+	cout << proc_name << "\n"
+		 << 100*done_part << " %          \n"
 		 << "time used " << real_t/3600 << ":" << (real_t%3600)/60 << ":" << real_t%60 << "          \n"
 		 << "time left " << b_i/3600 << ":" << (b_i%3600)/60 << ":" << b_i%60 << "          \n"
 		 << "last save: " << string(ctime(&curr_t))
 		 << "finish   : " << string(ctime(&b_t))
-		 << "\r"      // goto begin & erase
-		 << "\033[A"  // up & erase
-		 << "\033[A"  // up & erase
-		 << "\033[A"  // up & erase
-		 << "\033[A"  // up & erase
-		 << "\033[A"; // up & erase
+		 << "\r";      // goto begin & erase
+	for(i = 0; i < extra_strN + 6; ++i){
+		cout << "\033[A"; // up & erase
+	}
 	/*
 		 * At first sight it seems nothing will be printed because I print and erase all right away.
 		 * But I suppose that in some case \smth affect output-buffer but doesn't cause any screen.reprint()
@@ -75,73 +81,87 @@ int SayLog(string logFname, Ttype s, bool printOnScreen){
 
 string getErrStr(int n, string s)
 {
+	string s_ret;
     switch(n){
-    	case SayIt: return s;
+		case SayIt: s_ret = ""; break;
 
-        case CantOpenFile: return "Can't open file\n" + s + "\n";
-        case CantOpenPrevFile: return "Can't open .prev file\n" + s + "\n";
-        case CantCreateFile: return "Can't create file\n" + s + "\n";
-        case WrongScriptFormat: return s + "\n";
-        case Nis1: return "N == 1 (" + s + ")\n";
-        case NLessOrEq0: return "N <= 0 (" + s + ")\n";
-        case NisTooBig: return "N is too big: maxN = " + toString(MaxN) + " (" + s + ")\n";
-        case ALessOrEq0: return "a (base R) <= 0(" + s + ")\n";
-        case WrongVelocities: return "Wrong Velocity mod (" + s + ")\n";
-        case DtIs0: return "dt == 0 (" + s + ")\n";
-        case dtIsInf: return "dt is inf (" + s + ")\n";
-        case DtIsLess0: return "dt < 0 (" + s + ")\n";
-        case WrongCompMode: return "Wrong computation mod (" + s + ")\n";
-        case krLessOrEq0: return "kr <= 0 (" + s + ")\n";
-        case khLessOrEq0: return "kh <= 0 (" + s + ")\n";
-        case kaLess0: return "ka < 0 (" + s + ")\n";
-        case kvLess0: return "kv < 0 (" + s + ")\n";
-        case QLess0: return "Q < 0 (" + s + ")\n";
-        case StopFileAlreadyExists: return "Stop file already existed then computation has started (" + s + ")\n";
-        case ConstForCommonMagic: return "Nothing to worry about, keep doing your work, everything is OK! Sorry for the strange bug! :-) (" + s + ")\n";
-        case WrongPostProcMod: return "Wrong post processing mod, you entered " + s + " mode\n";
-        case FnumLess0: return "Fnum (number of current out galaxy file) < 0 (" + s + ")\n";
-        case CalcedT0Less0: return "totalT0 (model time which has computed already) < 0 (" + s + ")\n";
-        case MLessOrEq0: return "M <= 0 (" + s + ")\n";
-        case TLessOrEq0: return "endT <= 0 (" + s + ")\n";
-        case TlessCalcedT: return "endT < totalT (" + s + ")\n";
-        case dumpDTLessOrEq0: return "dumpDT <= 0 (" + s + ")\n";
-        case Geq0: return "G == 0 (" + s + ")\n";
-        case QIsInf: return "Q is inf (" + s + ")\n";
-        case AIsInf: return "a is inf (" + s + ")\n";
-        case krIsInf: return "kr is inf (" + s + ")\n";
-        case khIsInf: return "kh is inf (" + s + ")\n";
-        case kaIsInf: return "ka is inf (" + s + ")\n";
-        case kvIsInf: return "kv is inf (" + s + ")\n";
-        case MIsInf: return "M is inf (" + s + ")\n";
-        case HIsInf: return "H is inf (" + s + ")\n";
-        case TIsInf: return "endT is inf (" + s + ")\n";
-        case dumpDTIsInf: return "dumpDT is inf (" + s + ")\n";
-        case GIsInf: return "G is inf (" + s + ")\n";
-        case GisNot1: return "G != 1 (for efficiency) (" + s + ")\n";
-        case StarXIsInf: return "X of some star is inf (" + s + ")\n";
-        case StarMIsInf: return "M of some star is inf (" + s + ")\n";
-        case StarRIsInf: return "R of some star is inf (" + s + ")\n";
-        case StarVIsInf: return "V of some star is inf (" + s + ")\n";
-        case NULLmalloc: return "Bad host memory allocation (" + s + ")\n";
-        case WrongChngParamInp: return "No parameter with name " + s + " (chng_params)\n";
-        case WrongCondProcInp: return "Format for condition post_proc is:\n ./post_proc    mode(=3)     name_of_system    dr\n";
-        case dissipKless0: return "dissipK < 0 (" + s + ")\n";
-        case RbrdLess0: return "r_brd < 0 (" + s + ")\n";
-        case TmpLess0: return "initial temperature < 0 (" + s + ")\n";
-        case muLessEq0: return "mu <= 0 (" + s + ")\n";
-        case TmpStabEps_LessEq0: return "TmpStabEps <= 0 (" + s + ")\n";
-        case TmpStabGap_Less0: return "TmpStabGap < 0 (" + s + ")\n";
-        case TooDenseSystem: return "N/V > 1 - not allowed conditions\n";
+		case CantOpenFile: s_ret = "Can't open file\n"; break;
+		case CantOpenPrevFile: s_ret = "Can't open .prev file\n"; break;
+		case CantCreateFile: s_ret = "Can't create file\n"; break;
+		case WrongScriptFormat: s_ret = ""; break;
+		case Nis1: s_ret = "N == 1"; break;
+		case NLessOrEq0: s_ret = "N <= 0"; break;
+		case NisTooBig: s_ret = "N is too big: maxN = " + toString(MaxN); break;
+		case ALessOrEq0: s_ret = "a (base R) <= 0"; break;
+		case WrongVelocities: s_ret = "Wrong Velocity mod"; break;
+		case DtIs0: s_ret = "dt == 0"; break;
+		case dtIsInf: s_ret = "dt is inf"; break;
+		case DtIsLess0: s_ret = "dt < 0"; break;
+		case WrongCompMode: s_ret = "Wrong computation mod"; break;
+		case krLessOrEq0: s_ret = "kr <= 0"; break;
+		case khLessOrEq0: s_ret = "kh <= 0"; break;
+		case kaLess0: s_ret = "ka < 0"; break;
+		case kvLess0: s_ret = "kv < 0"; break;
+		case nCr_Less0: s_ret = "n_cr < 0"; break;
+		case QLess0: s_ret = "Q < 0"; break;
+		case StopFileAlreadyExists: s_ret = "Stop file already existed then computation has started"; break;
+		case ConstForCommonMagic: s_ret = "Nothing to worry about, keep doing your work, everything is OK! Sorry for the strange bug! :-)"; break;
+		case WrongPostProcMod: s_ret = "Wrong post processing mod, you entered"; break;
+		case FnumLess0: s_ret = "Fnum (number of current out galaxy file) < 0"; break;
+		case CalcedT0Less0: s_ret = "totalT0 (model time which has computed already) < 0"; break;
+		case MLessOrEq0: s_ret = "M <= 0"; break;
+		case TLessOrEq0: s_ret = "endT <= 0"; break;
+		case TlessCalcedT: s_ret = "endT < totalT"; break;
+		case dumpDTLessOrEq0: s_ret = "dumpDT <= 0"; break;
+		case Geq0: s_ret = "G == 0"; break;
+		case QIsInf: s_ret = "Q is inf"; break;
+		case AIsInf: s_ret = "a is inf"; break;
+		case krIsInf: s_ret = "kr is inf"; break;
+		case khIsInf: s_ret = "kh is inf"; break;
+		case kaIsInf: s_ret = "ka is inf"; break;
+		case kvIsInf: s_ret = "kv is inf"; break;
+		case MIsInf: s_ret = "M is inf"; break;
+		case HIsInf: s_ret = "H is inf"; break;
+		case TIsInf: s_ret = "endT is inf"; break;
+		case EpIsInf: s_ret = "Ep is inf"; break;
+		case EkIsInf: s_ret = "Ek is inf"; break;
+		case LIsInf: s_ret = "L is inf"; break;
+		case nCrIsInf: s_ret = "n_cr is inf"; break;
+		case dumpDTIsInf: s_ret = "dumpDT is inf"; break;
+		case GIsInf: s_ret = "G is inf"; break;
+		case GisNot1: s_ret = "G != 1 (for efficiency)"; break;
+		case StarXIsInf: s_ret = "X of some particle is inf"; break;
+		case StarMIsInf: s_ret = "M of some particle is inf"; break;
+		case StarRIsInf: s_ret = "R of some particle is inf"; break;
+		case StarVIsInf: s_ret = "V of some particle is inf"; break;
+		case NULLmalloc: s_ret = "Bad host memory allocation"; break;
+		case WrongChngParamInp: s_ret = "chng_params : No parameter with name"; break;
+		case WrongCondProcInp: s_ret = "Format for condition post_proc is:\n ./post_proc    mode(=3)     name_of_system    dr\n"; break;
+		case dissipKless0: s_ret = "dissipK < 0"; break;
+		case RcutLess0: s_ret = "r_cut < 0"; break;
+		case TmpLess0: s_ret = "initial temperature < 0"; break;
+		case muLessEq0: s_ret = "mu <= 0"; break;
+		case TmpStabEps_LessEq0: s_ret = "TmpStabEps <= 0"; break;
+		case TmpStabGap_Less0: s_ret = "TmpStabGap < 0"; break;
+		case TooDenseSystem: s_ret = "N/V > 1 - not allowed conditions\n"; break;
+		case NoValidTforP: s_ret = "Attempt to compurte Pressure with no valid T"; break;
+		case AttemptToPrintOutsyncedData: s_ret = "Attempt to save out-synced data"; break;
+		case CantCenterCM: s_ret = "Can't center CM"; break;
+		case NisntCubeForCristal: s_ret = "System density may result cristal state but N isn't valid for generating one. N must be N * 2 = m^3 for FCC lattice."; break;
+		case YetUnsupportedInput: s_ret = "Input params you set aren't fully supported currently"; break;
 
-        case CUDA_ERROR_CHECK_CONST: return s;
-        case CUDA_WRONG_DevMem_ALLOC: return "cuda: wrong device memory allocation (" + s + ")\n";
-        case CUDA_WRONG_COPY_TO_DevMem: return "cuda: wrong copy to device memory (" + s + ")\n";
-        case CUDA_WRONG_COPY_TO_HostMem: return "cuda: wrong copy to host memory (" + s + ")\n";
-        case CUDA_WRONG_NBlockW: return "cuda: wrong N: N%" + toString(BlockW) + " != 0 (" + s + ")\n";
-        case cudaErrorUnknown: return "cudaErrorUnknown:" + s;
+		case CUDA_ERROR_CHECK_CONST: s_ret = ""; break;
+		case CUDA_WRONG_DevMem_ALLOC: s_ret = "cuda: wrong device memory allocation"; break;
+		case CUDA_WRONG_COPY_TO_DevMem: s_ret = "cuda: wrong copy to device memory"; break;
+		case CUDA_WRONG_COPY_TO_HostMem: s_ret = "cuda: wrong copy to host memory"; break;
+		case CUDA_WRONG_NBlockW: s_ret = "cuda: wrong N: N%" + toString(BlockW) + " != 0"; break;
+		case cudaErrorUnknown: s_ret = "cudaErrorUnknown:"; break;
 
-        default: return s + "\nUnknown error #" + toString(n) + "\n";
+        default: s_ret = "\nUnknown error #" + toString(n);
     }
+    //s_ret = s_ret.empty() ? s : (s_ret + "\n(" + s + ")\n");
+
+    return s_ret.empty() ? s : (s_ret + "\n(" + s + ")\n");
 }
 
 template<typename Ttype>
@@ -191,6 +211,7 @@ void DoCommonMagic(void)
     toString((bool)1);
     sayError("aaa", 1,"abc");
     sayError(s, 1,"abc");
+    stp("start");
 }
 
 template <typename Ttype> string toString(Ttype val)

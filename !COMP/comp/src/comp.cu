@@ -41,7 +41,8 @@ int main(int argc, char* argv[])
         cout << Space.HeadFName << " was created in '" << b_s << "'\n";
     } else{
     	cout << "Usage:\n"
-    		 << "./script_name galaxy_name\n";
+    		 << argv[0] << " galaxy_name                                          \n";
+    	print_sys_info(cout);
     	return 1;
     }
 

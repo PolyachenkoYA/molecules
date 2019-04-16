@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -tt
+#!/home/ypolyach/anaconda3/bin/python3 -tt
 # Copyright 2010 Google Inc.
 # Licensed under the Apache License, Version 2.0
 # http://www.apache.org/licenses/LICENSE-2.0
@@ -22,7 +22,7 @@ def main():
         print('usage: ./full_proc.py      model_name     [keys,    N0,     N1, ...]')
         sys.exit(1)
         
-    model_name, keys, graph_dir, time_gaps_str, N0, N1, Nfrm, E, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 1, 2, 3)
+    model_name, keys, model_dir, graph_dir, time_gaps_str, N0, N1, Nfrm, E, P, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 1, 2, 3)
     # std_start(args, model_i, N0_i, N1_i):
     # model_name, keys, graph_dir, time_gaps_str, N0, N1, Nfrm, E, Tmp, Tmp_av, t, stabTind, params
     

@@ -34,8 +34,7 @@ int main(int argc, char* argv[])
         		return sayError(Space.LogFName, WrongPostProcMod, toString(procMod)); // toString(procMod) FOR SERVER COMPILATION;
         }
         if(procMod == FromToBinPostProcMod){
-        	sayError(Space.LogFName, SayIt, "bin <-> txt isn't supported yet\n supported modes:\n E(1)\n conditionFnc(3)\n ");
-        	//cout << "bin <-> txt isn't supported yet. See post_proc.log for more\n";
+        	sayError(Space.LogFName, SayIt, "bin <--> txt isn't supported yet\n supported modes:\n E(1)\n conditionFnc(3)\n ");
         	return WrongPostProcMod;
         }
         double dr = -1;
@@ -168,7 +167,12 @@ int main(int argc, char* argv[])
         Fout.close();
     } else {
         cout << "Format is:\n"
-        	 << "./script_name    galaxy_name    processing_mod    [dr(3)]\n";
+        	 << argv[0] << "    galaxy_name    processing_mod    [Nslice(for mod==3)]\n"
+        	 << "mods:\n"
+        	 << "1 = energy\n"
+        	 << "2 = bin <--> txt (not supported)\n"
+        	 << "3 = condition (radial distribution)\n";
+        print_sys_info(cout);
         return 100;
     }
 

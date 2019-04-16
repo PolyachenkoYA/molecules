@@ -15,7 +15,7 @@ template<typename T> T fromString(const string& s);
 string toLower(string s0);
 string toUpper(string s0);
 
-void time_progress(time_t real_start_t, time_t curr_t, double done_part, string proc_name);
+void time_progress(time_t real_start_t, time_t curr_t, double done_part, string proc_name, int extra_strN = 0);
 
 // ------------------------------------------ error handling --------------------------------------------------
 
