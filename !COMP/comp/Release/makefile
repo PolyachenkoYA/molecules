@@ -4,50 +4,15 @@
 
 -include ../makefile.init
 
-RM := rm -rf
+RM := rm
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include subdir.mk
 -include src/subdir.mk
-
-OS_SUFFIX := $(subst Linux,linux,$(subst Darwin/x86_64,darwin,$(shell uname -s)/$(shell uname -m)))
-
+-include subdir.mk
 -include objects.mk
 
-ifneq ($(MAKECMDGOALS),clean)
-ifneq ($(strip $(CC_DEPS)),)
--include $(CC_DEPS)
-endif
-ifneq ($(strip $(C++_DEPS)),)
--include $(C++_DEPS)
-endif
-ifneq ($(strip $(C_UPPER_DEPS)),)
--include $(C_UPPER_DEPS)
-endif
-ifneq ($(strip $(CXX_DEPS)),)
--include $(CXX_DEPS)
-endif
-ifneq ($(strip $(CU_DEPS)),)
--include $(CU_DEPS)
-endif
-ifneq ($(strip $(CPP_DEPS)),)
--include $(CPP_DEPS)
-endif
-ifneq ($(strip $(C_DEPS)),)
--include $(C_DEPS)
-endif
-endif
-
 -include ../makefile.defs
-
-# OpenGL+GLUT OS-specific define
-ifeq ($(shell uname -s),Darwin)
-GLUT_LIBS := -Xlinker -framework -Xlinker GLUT -Xlinker -framework -Xlinker OpenGL
-else
-GLUT_LIBS := -lGL -lGLU -lglut 
-endif
-
 
 # Add inputs and outputs from these tool invocations to the build variables 
 
@@ -55,19 +20,18 @@ endif
 all: comp
 
 # Tool invocations
-comp: $(OBJS) $(USER_OBJS)
+comp: $(OBJS) $(USER_OBJS) $(DEPS)
 	@echo 'Building target: $@'
-	@echo 'Invoking: NVCC Linker'
-	/usr/local/cuda-9.2/bin/nvcc --cudart static --relocatable-device-code=false -gencode arch=compute_50,code=compute_50 -gencode arch=compute_50,code=sm_50 -link -o  "comp" $(OBJS) $(USER_OBJS) $(LIBS)
+	@echo 'Invoking: NVCC linker'
+	/usr/local/cuda-10.1/bin/nvcc --cudart=static -ccbin g++ -gencode arch=compute_50,code=sm_50 -gencode arch=compute_50,code=compute_50 -o "comp" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(CC_DEPS)$(C++_DEPS)$(EXECUTABLES)$(C_UPPER_DEPS)$(CXX_DEPS)$(OBJS)$(CU_DEPS)$(CPP_DEPS)$(C_DEPS) comp
+	-$(RM) $(EXECUTABLES)$(OBJS) comp
 	-@echo ' '
 
 .PHONY: all clean dependents
-.SECONDARY:
 
 -include ../makefile.targets

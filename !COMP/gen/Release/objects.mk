@@ -2,7 +2,13 @@
 # Automatically-generated file. Do not edit!
 ################################################################################
 
-USER_OBJS :=
+USER_OBJS := 
 
 LIBS := -lgomp
+
+DEPS := \
+./src/subdir.mk \
+../../*.cu \
+../../*.cuh
+
 

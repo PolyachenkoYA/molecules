@@ -11,32 +11,31 @@ import numpy as np
 import math
 import os
 import matplotlib.pyplot as plt
+import re
 
 import mylib_molecules as my
 
 # Define a main() function that prints a little greeting.
 def main():
     args = sys.argv[1:]
-    argc_min = 1
     argc = len(args)
-    if(argc < argc_min):
-        print('usage:\n./cycle.py start_name')
+    if((argc != 1) and (argc != 2)):
+        print('usage:\n' + sys.argv[0] + '   start_name   [CPU/gpu]')
         sys.exit(1)
+    if(argc == 2):
+        use_gpu = (args[1] == 'gpu')
+    else:
+        use_gpu = False
     
     base_param_name = args[0];
-    params = my.read_params(base_param_name + '_' + my.param_file_suff)        
+    params = my.read_params(base_param_name + '_' + my.param_file_suff)
     
     dt_arr = [128,          161,          203,          255,          320,          403,          507,          638,          802,         1009,         1269,         1596,         2008,         2525,         3176,         3995,         5025,         6321,         7950,        10000]
     dt_arr = [128,          161,          203,          255,          320,          403,          507,          638,          802,         1009]
     dt_arr = [403,          507,          638,          802,         1009]
     dt_arr = [128,          161,          203,          255,          320]
     dt_arr = [128, 256, 512, 1024]
-    
-    N_arr = [100, 200]
-    N_arr = [2800, 100,  139,  195,  271,  379,  528,  737, 1028, 1434, 2000]    
-    N_arr = [512, 1024, 2048, 4096]
-    n = 0.35
-        
+            
     rc = [3, 4]
     rc = [2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 17, 20, 23, 26, 30, 35, 40, 45, 50]
     rc = [55, 60, 65, 70, 75, 80, 85, 50*math.sqrt(3), 100]
@@ -44,7 +43,7 @@ def main():
     
     dt_arr = [128,    256,    512,    640,   1024,   1280,   2048,   2560,   3200,   4096,   5120,   6400,   8192,  10240,  12800,  16000,  16384,  20480,  25600,  32000,  32768,  40960,  51200]
     #dt_arr = [128, 256, 640]
-    N_rep = range(4, 12);
+    Nrep = range(4, 12);
     
     #T = [1.5, 1.8, 2, 2.2, 2.5, 3]
     T = [2]
@@ -60,20 +59,98 @@ def main():
     #T = [1.5, 2, 2.5]
     #n = [1.2, 1.4, 1]
     
-    # ------------------------------ phase --------------------------------
-    for Ti in T:
-        for ni in n:
-            new_name = 'T' + str(Ti) + '_n' + str(ni)
-                
-            if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Tmp ' + str(Ti) + ' n ' + str(ni))):
-                return        
-            if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-pics-energy')):
+    nu = [0.0001, 0.0002, 0.0003, 0.0004, 0.0007, 0.0011, 0.0018, 0.0030, 0.0048, 0.0078, 0.0127, 0.0207, 0.0336, 0.0546, 0.0886, 0.1438, 0.2336, 0.3793, 0.6158, 1.0000]
+    nu = [0.01, 0.1, 1]
+    
+    N_arr = [100, 200]
+    N_arr = [2800, 100,  139,  195,  271,  379,  528,  737, 1028, 1434, 2000]
+    if(use_gpu):
+        N_arr = [512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072]
+        #N_arr = [512, 65536]
+        #N_arr = [8192]
+        
+        #Np_arr = [8, 16, 32, 64, 128, 256, 512]
+        Np_arr = [32, 64, 128, 256, 512]
+        #Np_arr = [512]
+    else:
+        N_arr = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072]
+        #N_arr = [1024]
+        
+        Np_arr = [1, 2, 4, 5, 8]
+        #Np_arr = [4]
+    
+    # ---------------------- N time ------------------------
+    for Npi in Np_arr:
+        if(use_gpu):
+            cuh_file_path = os.path.join('/home', 'ypolyach', '!molecules', '!COMP', 'const.cuh')
+            cuh_file = open(cuh_file_path, 'r')
+            cuh_codelines = cuh_file.read()
+            cuh_file.close()
+            match_obj = re.search('#define BlockW \d+', cuh_codelines)
+            #print(match_obj)
+            def_str = match_obj.group(0).split(' ')
+            old_Np = def_str[-1]
+            new_Np = str(Npi)
+            new_codelines = ' '.join([cuh_codelines[:(match_obj.end() - len(old_Np) - 1)], new_Np, cuh_codelines[(match_obj.end() + 1):]])
+            #print(new_codelines)
+            cuh_file = open(cuh_file_path, 'w')
+            cuh_file.write('%s' % new_codelines)
+            cuh_file.close()
+            
+            if(not my.run_it('./cp_all_to_go.sh')):
+                return
+            
+        for Ni in N_arr:
+            new_name = 'p' + str(Npi) + '_N' + str(Ni)
+            Nrep = max(int(round((5 if use_gpu else 2)*512*2 * (2048 / Ni)**2)), 4)
+            endT = Nrep/512
+            dumpDT = 2/endT
+            if(use_gpu):
+                if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni) + ' endT ' + str(endT) + ' dumpDT ' + str(dumpDT))):
+                    return
+            else:
+                if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni) + ' Nthreads ' + str(Npi) + ' endT ' + str(endT) + ' dumpDT ' + str(dumpDT))):
+                    return
+
+            if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-move_res')):
                 return
         
             if(not my.run_it('rm ' + new_name + '_param.dat')):
                 return
             if(not my.run_it('rm ' + new_name + '_particles.xyz')):
-                return                
+                return            
+
+    
+    # ------------------------------ thermostat --------------------------------
+    # for ni in nu:
+        # new_name = 'nu' + str(ni)
+
+        # if(not my.run_it('cp tst_particles.xyz.0 ' + new_name + '_particles.xyz')):
+            # return                            
+        # if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' dissipK ' + str(-ni))):
+            # return        
+        # if(not my.run_it('./full_cycle.py ' + new_name + ' -pics-energy')):
+            # return
+    
+        # if(not my.run_it('rm ' + new_name + '_param.dat')):
+            # return
+        # if(not my.run_it('rm ' + new_name + '_particles.xyz')):
+            # return                
+    
+    # ------------------------------ phase --------------------------------
+    #for Ti in T:
+        #for ni in n:
+            #new_name = 'T' + str(Ti) + '_n' + str(ni)
+                
+            #if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Tmp ' + str(Ti) + ' n ' + str(ni))):
+                #return        
+            #if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-pics-energy')):
+                #return
+        
+            #if(not my.run_it('rm ' + new_name + '_param.dat')):
+                #return
+            #if(not my.run_it('rm ' + new_name + '_particles.xyz')):
+                #return                
         
     
     # ------------------------------ pressure --------------------------------
@@ -104,8 +181,8 @@ def main():
             #if(not my.run_it('rm ' + new_name + '_particles.xyz')):
                 #return                
     
-    # ------------------------- dynamic mmemory time -------------------------
-    #for i in N_rep:
+    # ------------------------- dynamic memory time -------------------------
+    #for i in Nrep:
         #new_base_name = base_param_name + str(i)
         #if(not my.run_it('cp ' + base_param_name + '_' + my.param_file_suff + ' ' + new_base_name + '_' + my.param_file_suff)):
             #return        
@@ -147,22 +224,7 @@ def main():
             #return
         #if(not my.run_it('rm ' + new_name + '_particles.xyz')):
             #return                
-    
-    # ---------------------- N time ------------------------
-    #for Ni in N_arr:
-        #new_name = 'N' + str(Ni)
-        #R = ((Ni/n)**(1/3)) / 2
-            
-        #if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni) + ' R ' + str(R))):
-            #return        
-        #if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-pics-enegry')):
-            #return
-    
-        #if(not my.run_it('rm ' + new_name + '_param.dat')):
-            #return
-        #if(not my.run_it('rm ' + new_name + '_particles.xyz')):
-            #return            
-    
+        
     # ---------------------- dt time ------------------------
     #for dti in dt_arr:
         #new_name = 'dt' + str(dti)

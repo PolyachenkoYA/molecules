@@ -1,3 +1,11 @@
+//============================================================================
+// Name        : comp.cpp
+// Author      : 
+// Version     :
+// Copyright   : Your copyright notice
+// Description : Hello World in C++, Ansi-style
+//============================================================================
+
 /*
  ============================================================================
  Name        : calc.cu
@@ -17,7 +25,7 @@ int main(int argc, char* argv[])
         Space.GlxName = argv[1];
         Space.LogFName = Space.GlxName + "/comp.log";
 
-        mkdir(string("./"+Space.GlxName).c_str(), S_IRWXU | S_IRWXG);                                 // whole model folder
+        mkdir(string("./"+Space.GlxName).c_str(), S_IRWXU | S_IRWXG);                            // whole model folder
         mkdir(string("./"+Space.GlxName + "/" + Space.FramesFilesFolder).c_str(), S_IRWXU | S_IRWXG); // frames folder
 
         Space.sayLog("computation session " + Space.sessionID);
@@ -49,3 +57,4 @@ int main(int argc, char* argv[])
     Space.sayLog("all is ok | calc " + Space.sessionID);
     return 0;
 }
+

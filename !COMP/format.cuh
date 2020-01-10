@@ -15,12 +15,13 @@ template<typename T> T fromString(const string& s);
 string toLower(string s0);
 string toUpper(string s0);
 
-void time_progress(time_t real_start_t, time_t curr_t, double done_part, string proc_name, int extra_strN = 0);
+void time_progress(double gt, double real_start_t, double curr_t, double done_part, string proc_name, int extra_strN = 0);
+void print_sys_info(ostream &out);
 
 // ------------------------------------------ error handling --------------------------------------------------
 
 string getErrStr(int n, string s);
-template<typename Ttype> int sayError(string logFname, int n, Ttype s, bool printOnScreen = 0);
+template<typename Ttype> int sayError(string logFname, int n, Ttype s, bool printOnScreen = 1);
 template<typename Ttype> int SayLog(string logFname, Ttype s, bool printOnScreen = 0);
 template<typename Ttype> int addToLogFile(Ttype s);
 void DoCommonMagic(void);

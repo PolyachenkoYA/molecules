@@ -16,22 +16,25 @@
 //-----------------------------------------------------------------
 TSpace::TSpace()
 {
-	srand(time(0));
+#ifndef _OPENMP
+	#warning "OpenMP unused"
+#endif
+	global_start_time = time(0);
+	srand(global_start_time);
+	sessionID = string(ctime(&global_start_time));
+	gt = global_start_time - omp_get_wtime();
 
-	n_cr = glob_time = pressure = n = dissipK = TmpStabEps = r_cut2 = localT = dumpDT = endT = dt = eff = R = Tmp = L.x = L.y = L.z = E.x = E.y = 0;
-	TmpStabGap = Nslice = Nfrm = Ntot = Fnum = compMode = binOutF = useCuda = Ek_is_valid = Ep_is_valid = P_is_valid = 0;
+	Hshadow = n_cr = glob_time = pressure = n = dissipK = TmpStabEps = r_cut2 = localT = dumpDT = endT = dt = eff = R = Tmp = L.x = L.y = L.z = E.x = E.y = 0;
+	TmpStabGap = Nslice = Nfrm = Nthreads = Ntot = Fnum = compMode = binOutF = useCuda = Ek_is_valid = Ep_is_valid = P_is_valid = 0;
 	hostXreal = devX = hostX = nullptr;
 	devV = hostV = nullptr;
-	hostF = nullptr;
 	hostOldX = nullptr;
 	hostVK = hostRK = nullptr;
 	devA = hostA = nullptr;
 	devE = hostE = nullptr;
 	gCondFnc = nullptr;
 	devPressure = hostPressure = nullptr;
-
-	time_t now = time(0);
-	sessionID = string(ctime(&now));
+	hostH = nullptr;
 
     ParticleFileExt = "xyz";
 	SGname = "particles." + ParticleFileExt;
@@ -48,28 +51,30 @@ TSpace::TSpace()
     compModeStr = "";
 
     ParamFHead = {"Ntot", "n", "n_cr", "r_cut", "endT", "dumpDT", "dt", "Tmp",
-    		      "dissipK", "TmpStabEps", "TmpStabGap", "compMode", "binOutF"};
+    		      "dissipK", "TmpStabEps", "TmpStabGap", "compMode", "binOutF", "Nthreads"};
     GalaxyFHead = {"x", "y", "z", "Vx", "Vy", "Vz", "N"};
 }
 
 TSpace::~TSpace(){
 	free(hostPressure);
+	free(hostH);
 	free(hostX);
 	free(hostXreal);
 	free(hostV);
-	free(hostF);
 	free(hostOldX);
 	free(hostA);
 	free(hostE);
 	if(gCondFnc) free(gCondFnc);
 
-	int i;
-	if(hostVK) for(i = 0; i < 4; ++i)
-		free(hostVK[i]);
-	if(hostRK) for(i = 0; i < 4; ++i)
-		free(hostRK[i]);
-	free(hostVK);
-	free(hostRK);
+	if(compMode == RKcompMode){
+		int i;
+		if(hostVK) for(i = 0; i < 4; ++i)
+			free(hostVK[i]);
+		if(hostRK) for(i = 0; i < 4; ++i)
+			free(hostRK[i]);
+		free(hostVK);
+		free(hostRK);
+	}
 
 	if(useCuda){
 		CUDA_CHECK(cudaFree(devPressure));
@@ -87,11 +92,11 @@ int TSpace::sayLog(string s, bool printOnScreen){
 int TSpace::AreClosePartcls(double3 c0, int Ncurr)
 {
 	int i;
-	double3 r;
+	//double3 r;
 	double D = 2*R;
+	c0 = -c0;
 	for(i = 0; i < Ncurr; ++i){
-		r = shiftR(hostX[i] - c0, R, D);
-		if(dot(r,r) < 1) // r(x,x0) < a
+		if(dot(shiftR(hostX[i] + c0, R, D)) < 1) // r(x,x0) < a
 			return 1;
 	}
 	return 0;
@@ -149,7 +154,7 @@ int TSpace::CreateParticles(void)
 	//i = centerCM();
 	//if(i) return i;
 
-	sayLog(string("      Center of mass was stabilized\n")+
+	sayLog(string("      Center of mass stabilized\n")+
 		   string("   }\n"));
 
 	return 0;
@@ -207,12 +212,10 @@ int TSpace::stopMacroMovement(void)
 int TSpace::CheckPartcls(void)
 {
 	int i,j;
-	double3 r;
+	//double3 r;
 	for(i = 0; i < Ntot; ++i) for(j = i+1; j < Ntot; ++j){
-		r = hostX[i] - hostX[j];
-		if(dot(r) < 1){
+		if(dot(hostX[i] - hostX[j]) < 1)
 			return 1;
-		}
 	}
 
 	return 0;
@@ -229,6 +232,9 @@ int TSpace::ResizeStars(int _n)
 		hostPressure = (double*)malloc(szf1);
 		if(!hostPressure) return NULLmalloc;
 
+		hostH = (double*)malloc(szf1);
+		if(!hostH) return NULLmalloc;
+
 		hostX = (double3*)malloc(szf3);
 		if(!hostX) return NULLmalloc;
 
@@ -238,22 +244,21 @@ int TSpace::ResizeStars(int _n)
 		hostV = (double3*)malloc(szf3);
 		if(!hostV) return NULLmalloc;
 
-		hostF = (double3*)malloc(szf3);
-		if(!hostF) return NULLmalloc;
-
 		hostOldX = (double3*)malloc(szf3);
 		if(!hostOldX) return NULLmalloc;
 
-		hostVK = (double3**)malloc(sizeof(double3*)*4);
-		if(!hostVK) return NULLmalloc;
-		hostRK = (double3**)malloc(sizeof(double3*)*4);
-		if(!hostRK) return NULLmalloc;
+		if(compMode == RKcompMode){
+			hostVK = (double3**)malloc(sizeof(double3*)*4);
+			if(!hostVK) return NULLmalloc;
+			hostRK = (double3**)malloc(sizeof(double3*)*4);
+			if(!hostRK) return NULLmalloc;
 
-		for(int i = 0; i < 4; ++i){
-			hostVK[i] = (double3*)malloc(szf3);
-			if(!hostVK[i]) return NULLmalloc;
-			hostRK[i] = (double3*)malloc(szf3);
-			if(!hostRK[i]) return NULLmalloc;
+			for(int i = 0; i < 4; ++i){
+				hostVK[i] = (double3*)malloc(szf3);
+				if(!hostVK[i]) return NULLmalloc;
+				hostRK[i] = (double3*)malloc(szf3);
+				if(!hostRK[i]) return NULLmalloc;
+			}
 		}
 
 		hostA = (double3*)malloc(szf3);
@@ -261,7 +266,6 @@ int TSpace::ResizeStars(int _n)
 
 		hostE = (double2*)malloc(szf2);
 		if(!hostE) return NULLmalloc;
-
 
 		if(useCuda){
 			CUDA_CHECK(cudaMalloc((void**)&devPressure,szf1));
@@ -304,13 +308,16 @@ int TSpace::SaveParams(string FileName)
     Fout << '\n';
     sayLog("      text part was written\n");
 
-    vector<double> outData;
     Fout << setw(spForV) << Ntot;
-    outData = {n, n_cr, sqrt(r_cut2), endT, 1/dumpDT, 1/dt, Tmp, dissipK, TmpStabEps};
-    for(i = 0; i < outData.size(); ++i) Fout << setw(spForV) << outData[i];
-    Fout << setw(spForV) << TmpStabGap;
-    Fout << setw(spForV) << (compMode - CompModeID) * (useCuda ? -1 : 1);
-    Fout << setw(spForV) << binOutF;
+
+    vector<double> doubleOutData;
+    doubleOutData = {n, n_cr, sqrt(r_cut2), endT, 1/dumpDT, 1/dt, Tmp, dissipK, TmpStabEps};
+    for(i = 0; i < doubleOutData.size(); ++i) Fout << setw(spForV) << doubleOutData[i];
+
+    vector<int> intOutData;
+    intOutData = {TmpStabGap, (compMode - CompModeID) * (useCuda ? -1 : 1), binOutF, Nthreads};
+    for(i = 0; i < intOutData.size(); ++i) Fout << setw(spForV) << intOutData[i];
+
     Fout << '\n';
     Fout.close();
 
@@ -359,17 +366,14 @@ int TSpace::restoreForComp(void)
 int TSpace::SaveParticles(string FileName, bool bin, int mode)
 {
 	sayLog(string("      SaveStars (") + FileName + string("){\n"));
-	int i, spForV = 14;
+	int i, spForV = 17;
     ofstream Fout;
 
-    if(bin){/*
+    if(bin){
         Fout.open(FileName.c_str(),ios::binary | ios::trunc);
         if(!Fout){ return CantCreateFile; }
-        int buf = Ntot;
-        Fout.write((char*)&(buf),sizeof(int));
-        Fout.write((char*)&(Fnum),sizeof(int));
-        Fout.write((char*)&(totalT),sizeof(double));
-        */
+        Fout.write((char*)&(Ntot),sizeof(int));
+        Fout.write((char*)&(glob_time),sizeof(double));
     } else {
         Fout.open(FileName.c_str(),ios::trunc);
         if(!Fout){ return CantCreateFile; }
@@ -379,7 +383,6 @@ int TSpace::SaveParticles(string FileName, bool bin, int mode)
     }
     sayLog("         Header was written\n");
 
-    //Fout << scientific;
     for(i = 0; i < Ntot; ++i)
     {
     	if(dot(hostX[i]) == INFINITY) return StarXIsInf;
@@ -394,6 +397,7 @@ int TSpace::SaveParticles(string FileName, bool bin, int mode)
             Fout.write((char*)&(hostV[i].y),sizeof(double));
             Fout.write((char*)&(hostV[i].z),sizeof(double));
         } else {
+        	Fout << scientific;
         	Fout << setw(spForV) << hostXreal[i].x
         		 << setw(spForV) << hostXreal[i].y
         		 << setw(spForV) << hostXreal[i].z
@@ -412,14 +416,15 @@ int TSpace::checkInput(int _n, double _dumpDT, double _dt)
 {
     if(compMode < CompModeID){ compMode += CompModeID; }
 
-    if((compMode != VRcompMode) &&
+    if((compMode != CVRcompMode) &&
        (compMode != LPcompMode) &&
        (compMode != RKcompMode) &&
-       (compMode != AdVRcompMode) &&
+       (compMode != AdCVRcompMode) &&
+       (compMode != VVRcompMode) &&
        (compMode != MYcompMode))
       { return WrongCompMode; }
-    if(((compMode == RKcompMode) || (compMode == AdVRcompMode))){
-    	sayLog("\nRK4 and AdVR schemes are not supported\n", 1);
+    if(((compMode == RKcompMode) || (compMode == AdCVRcompMode))){
+    	sayLog("\nRK4 and AdCVR schemes are not supported\n", 1);
     	return YetUnsupportedInput;
     }
     if(_n == 1){ sayLog("\nN == 1\n", 1); }
@@ -452,7 +457,16 @@ int TSpace::checkInput(int _n, double _dumpDT, double _dt)
     	//	return TooDenseSystem;
     	//}
     }
-
+    if(Nthreads < 0){ return NthreadsLessOrEq0; }
+    if(Nthreads == 0){
+    	sayLog("Nthreads = " + toString(omp_get_max_threads()) + " will be used");
+    }
+    if(Nthreads > omp_get_max_threads()){
+    	sayLog("Nthreads = " + toString(Nthreads) + " > maxNthreads = " + toString(omp_get_max_threads()) + ". It is likely to be not an optimal choice\n", 1);
+    }
+    if(Nthreads < omp_get_max_threads()){
+    	sayLog("Nthreads = " + toString(Nthreads) + " < maxNthreads = " + toString(omp_get_max_threads()) + ". It might be not an optimal choice\n", 1);
+    }
     if(binOutF == 1){
     	sayLog("\nbin files aren't supported for now\n", 1);
     	return 12345;
@@ -479,28 +493,31 @@ int TSpace::applyInput(int _n, double _dumpDT, double _dt)
 	dt = 1.0 / _dt;
 	r_cut2 = r_cut2 * r_cut2;
 
-/*	if(n > n_cr * (1 + SYS_EPS)){ // n > n_cr -> cristal
-		R = 0.5 * pow(N/n, 1.0/3);
-	} else {
-		R = pow((Ntot/n), 1.0/3) * 0.5;
-	}*/
-	R = pow(Ntot/n, 1.0/3) * 0.5;
-	if(R < sqrt(r_cut2)){ sayLog("\nR < Rcut\n", 1); }
+	R = pow(Ntot/n, 1.0/3) / 2;
+	if(R*R < r_cut2){ sayLog("\nR < Rcut\n", 1); }
+
+#ifdef _OPENMP
+	if(Nthreads > 0) // if == 0, max avail will be used
+		omp_set_num_threads(Nthreads);
+#endif
 
 	sayLog("      }\n");
 	return 0;
 }
 
-int TSpace::SafeLoadParams(string *goodName)
+int TSpace::SafeLoadParams(string *goodName, string firstAttemptName)
 {
-    string b_s = "./" + GlxName + "_" + PrmFName;
+	if(firstAttemptName.empty()){
+		firstAttemptName = GlxName;
+	}
+    string b_s = "./" + firstAttemptName + "_" + PrmFName;
     bool b_b = access(b_s.c_str(),0);
 	if(b_b){
 		sayLog(string("   '" + b_s + "' not found\n") +
-		       string("   trying to find './"+PrmFName+"'\n"));
+		       string("   trying to find './" + PrmFName + "'\n"));
 		cout << "'" << b_s << "' not found\n"
 			 << "trying to find './" << PrmFName << "' ... ";
-		b_s = "./"+PrmFName;
+		b_s = "./" + PrmFName;
 	}
 	*goodName = b_s;
 	int err = LoadParams(b_s);
@@ -522,11 +539,10 @@ int TSpace::LoadParams(string FileName)
     Fin >> _N >> n >> n_cr >> r_cut2
     	>> endT >> _dumpDT >> _dt
     	// endT - total time to compute from 0 to endT
-    	// totalT - total time already computed
     	// dumpDT - time between saving to file
     	// dt - time step for computation
     	>> Tmp >> dissipK >> TmpStabEps
-    	>> TmpStabGap >> compMode >> binOutF;
+    	>> TmpStabGap >> compMode >> binOutF >> Nthreads;
     Fin.close();
 
     sayLog("      Parameters were loaded\n");
@@ -534,26 +550,29 @@ int TSpace::LoadParams(string FileName)
     err = applyInput(_N, _dumpDT, _dt);
     if(err) return err;
 
-    sayLog("   }\n   " + string(useCuda ? "GPU" : "CPU") + " in use\n");
+    sayLog("   }\n   ");
+    sayLog(string(useCuda ? "GPU" : "CPU") + " in use\n", 1);
     return 0;
 }
 
 int TSpace::LoadParticles(string FileName, bool bin, int mode)
 {
     int i,N,err;
-    string buf;
+    string s_buf;
+    //double d_buf;
     ifstream Fin;
     sayLog("   LoadParticles (" + FileName + ") {\n");
     if(bin){
         Fin.open(FileName.c_str(),ios::binary);
         if(!Fin){ return CantOpenFile; }
-        Fin.read((char*)&(N),sizeof(int));
+        Fin.read((char*)&(N), sizeof(int));
+        Fin.read((char*)&(glob_time), sizeof(double));
     } else {
         Fin.open(FileName.c_str());
         if(!Fin){ return CantOpenFile; }
         Fin >> N;
-        getline(Fin,buf);
-        getline(Fin,buf);
+        getline(Fin, s_buf);
+        getline(Fin, s_buf);
     }
     if(N <= 0) return NLessOrEq0;
     err = ResizeStars(N);
@@ -562,12 +581,12 @@ int TSpace::LoadParticles(string FileName, bool bin, int mode)
     for(i = 0; i < Ntot; ++i)
     {
         if(bin){
-            Fin.read((char*)&(hostXreal[i].x),sizeof(double));
-            Fin.read((char*)&(hostXreal[i].y),sizeof(double));
-            Fin.read((char*)&(hostXreal[i].z),sizeof(double));
-            Fin.read((char*)&(hostV[i].x),sizeof(double));
-            Fin.read((char*)&(hostV[i].y),sizeof(double));
-            Fin.read((char*)&(hostV[i].z),sizeof(double));
+            Fin.read((char*)&(hostXreal[i].x), sizeof(double));
+            Fin.read((char*)&(hostXreal[i].y), sizeof(double));
+            Fin.read((char*)&(hostXreal[i].z), sizeof(double));
+            Fin.read((char*)&(hostV[i].x), sizeof(double));
+            Fin.read((char*)&(hostV[i].y), sizeof(double));
+            Fin.read((char*)&(hostV[i].z), sizeof(double));
         } else {
         	Fin >> hostXreal[i].x >> hostXreal[i].y >> hostXreal[i].z >> hostV[i].x >> hostV[i].y >> hostV[i].z;
         }
@@ -598,10 +617,10 @@ int TSpace::postGetProc(int mode)
 
 		double dt2_d2;
 		switch(compMode){
-		case VRcompMode:
+		case CVRcompMode:
 			dt2_d2 = dt*dt*0.5;
 			for(i = 0; i < Ntot; ++i) hostOldX[i] = shiftR(hostX[i] - hostV[i]*dt + hostA[i]*dt2_d2, R);
-			sayLog("      oldCrd for VRmode were computed\n");
+			sayLog("      oldCrd for CVRmode were computed\n");
 			break;
 		case LPcompMode:
 			dt2_d2 = dt*0.5;
@@ -622,7 +641,7 @@ int TSpace::stabilizeTmp(void)
 	long int print_step, k_step = 0;
 	double Tmp_av, std_disp, Tmp_av0;
 	double t = 0;
-    time_t start_time_glob, start_time_2;
+    double start_time_glob, start_time_2;
     double *Tmp_inst = new double[TmpStabGap];
 
     b_i = postGetProc(CompLoadMode);
@@ -630,8 +649,8 @@ int TSpace::stabilizeTmp(void)
     Tmp_av = Tmp;
     print_step = Ntot > 10000 ? 1 : 100000000 / (Ntot * Ntot);
 
-
-    time(&start_time_glob);
+    //time(&start_time_glob);
+    start_time_glob = omp_get_wtime();
     do
     {
     	b_i = doTimeStep(compMode);
@@ -645,7 +664,8 @@ int TSpace::stabilizeTmp(void)
     	Tmp_inst[k_step % TmpStabGap] = Tmp_curr;
 		if(k_step == TmpStabGap){
 			Tmp_av0 = Tmp_av;
-			time(&start_time_2);
+			//time(&start_time_2);
+			start_time_2 = omp_get_wtime();
 		}
     	if(k_step >= TmpStabGap){
     		std_disp = 0;
@@ -662,12 +682,12 @@ int TSpace::stabilizeTmp(void)
         if(k_step % print_step == 0)
         {
         	if(k_step < TmpStabGap){
-            	time_progress(start_time_glob, time(0), ((double)k_step / TmpStabGap),
+            	time_progress(gt, start_time_glob, omp_get_wtime(), ((double)k_step / TmpStabGap),
             			"Tmp stabilizing: initial time gap\nT_target = " + toString(Tmp) + "; T_curr_av = " + toString(Tmp_av) + "; T_curr = " + toString(Tmp_curr),
             			1);
 
         	} else {
-            	time_progress(start_time_2, time(0),
+            	time_progress(gt, start_time_2, omp_get_wtime(),
             			log(epsDlt(Tmp_av0, Tmp) / epsDlt(Tmp_av, Tmp)) / log(epsDlt(Tmp_av0, Tmp) / TmpStabEps),
             			"Tmp stabilizing: waiting for equilibrium\nT_target = " + toString(Tmp) + "; T_curr_av = " + toString(Tmp_av) + "; T_curr = " + toString(Tmp_curr),
             			1);
@@ -701,7 +721,7 @@ int TSpace::saveDump(ofstream &FoutT, ofstream &FoutE, ofstream &FoutP, string &
     b_i = useCuda ? cudaDoEstep() : doEstep();
     if(b_i) return b_i;
 
-    FoutE << E.x << " " << E.y << " " << (E.x + E.y) << endl;
+    FoutE << E.x << " " << E.y << " " << (E.x + E.y) << " " << (Hshadow + E.x + E.y) << endl;
     sayLog("      Energy computed & saved\n");
 
 	b_i = computePressure();
@@ -720,15 +740,15 @@ int TSpace::main_compute(void)
 	if(!access(StpFName.c_str(),0)) return StopFileAlreadyExists;
 
     int b_i = 0;
-    time_t rStime;
+    double rStime;
     double kt;
-    bool stpCalc = 0;
+//    bool stpCalc = 0;
     string buf_s, BaseName = "./" + GlxName + "/";
     string FramePath = BaseName + FramesFilesFolder + "/";
 
     //ofstream FoutT((BaseName+TFile).c_str(),ios::app);
-    // This was to make possible to continue computation, but here it's not possible for other reasons.
-    // so no need to keep this bothering reature
+    // This was to make it possible to continue computation, but here it's not possible for other reasons.
+    // so no need to keep this bothering feature
     ofstream FoutT((BaseName + TFile).c_str());
     if(!FoutT) return CantCreateFile;
     FoutT.precision(PrintPres);
@@ -749,9 +769,10 @@ int TSpace::main_compute(void)
 
     kt = real_time_k();
 
-    sayLog(string("      " + compModeStr + " computation mode\n")+
+    sayLog(string("      " + compModeStr + " computation mode\n") +
+    	   string("      thermostat is " + toString(thermostatOn ? "used" : "not used") + "\n") +
     	   string("      Starting the computation{\n"));
-    time(&rStime);
+    rStime = omp_get_wtime();
     do
     {
     	b_i = doTimeStep(compMode);
@@ -766,11 +787,10 @@ int TSpace::main_compute(void)
         	b_i = saveDump(FoutT, FoutE, FoutP, FramePath);
         	if(b_i) return b_i;
 
-            time_progress(rStime, time(0), glob_time / endT / kt, "computing");
-            stpCalc = !((glob_time < endT - dt*(1 - SYS_EPS)) && access(StpFName.c_str(),0));
+            time_progress(gt, rStime, omp_get_wtime(), glob_time / endT / kt, "computing");
         }
-    }while(!stpCalc);
-    rt = time(0) - rStime;
+    }while((glob_time < endT - dt*(1 - SYS_EPS)) && access(StpFName.c_str(),0));
+    rt = omp_get_wtime() - rStime;
     FoutT.close();
     FoutP.close();
     FoutE.close();
@@ -780,13 +800,13 @@ int TSpace::main_compute(void)
     buf_s = glob_time < endT - dt * (1 - SYS_EPS) ? "terminated" : "done";
     buf_s = "Computation was " + buf_s;
     cout << buf_s << "\n";
-    sayLog(string("      "+buf_s+"\n")+
-    	   string("      }\n")+
-    	   string("   }\n")+
-    	   string("   Efficiency{\n")+
-    	   string("      time computed = "+toString(glob_time)+"; dt = "+toString(dt)+"; usedT/dt = "+toString(glob_time / dt)+"\n")+
-           string("      N = " + toString(Ntot) + "; real_t [h] = " + toString(1.0/3600*rt) + "\n")+
-           string("      efficiency (e = endT/dt*N^2/t_real) = " + toString(eff) + "\n")+
+    sayLog(string("      " + buf_s + "\n") +
+    	   string("      }\n") +
+    	   string("   }\n") +
+    	   string("   Efficiency{\n") +
+    	   string("      time computed = " + toString(glob_time) + "; dt = " + toString(dt) + "; usedT/dt = " + toString(glob_time / dt)+"\n") +
+           string("      N = " + toString(Ntot) + "; real_t [h] = " + toString(rt / 3600.0) + "\n") +
+           string("      efficiency (e = endT/dt*N^2/real_t) = " + toString(eff) + "\n") +
            string("   }\n"));
 
 
@@ -803,8 +823,8 @@ double TSpace::real_time_k(void)
 		case MYcompMode:
 			compModeStr = "MY";
 			break;
-    	case VRcompMode:
-    		compModeStr = "VR";
+    	case CVRcompMode:
+    		compModeStr = "CVR";
     		break;
     	case LPcompMode:
     		compModeStr = "LP";
@@ -813,12 +833,12 @@ double TSpace::real_time_k(void)
     		kt /= 4;
     		compModeStr = "RK";
     		break;
-    	case AdVRcompMode:
+    	case AdCVRcompMode:
     		kt /= 4;
-    		compModeStr = "AdVR";
+    		compModeStr = "AdCVR";
     		break;
     }
-    return 1 + kt * 0.35; // TODO find k - it's not 0.788 here
+    return 1 + kt * 0.35; // TODO find k
 }
 
 int TSpace::shiftAll(void)
@@ -831,11 +851,12 @@ int TSpace::shiftAll(void)
 int TSpace::doTimeStep(int cmpMode)
 {
     switch (cmpMode){
-    	case MYcompMode: stepMY(); break;
-        case VRcompMode: stepVR(); break;
+        case CVRcompMode: stepCVR(); break;
         case LPcompMode: stepLP(); break;
         case RKcompMode: stepRK(); break;
-        case AdVRcompMode: stepAdVR(); break;
+        case AdCVRcompMode: stepAdCVR(); break;
+    	case MYcompMode: stepMY(); break;
+    	case VVRcompMode: stepVVR(); break;
         default: return WrongCompMode;
     }
 
@@ -866,8 +887,6 @@ int TSpace::CPU_findAllA(void)
 
     #ifdef _OPENMP
     	#pragma omp parallel for private(bv, r2, j, m_x_curr, _f)
-	#else
-		#warning "OpenMP unused"
     #endif
     for(i = 0; i < Ntot; ++i){
     	m_x_curr = -hostX[i];
@@ -896,63 +915,88 @@ int TSpace::CPU_findAllA(void)
 int TSpace::useThermostat(void)
 {
     if(thermostatOn){
-    	double b_d;
+    	double b_d, sT = sqrt(Tmp);
+    	//double p_coll = dt * dissipK;
     	int i;
 
     	b_d = sqrt(2 * Tmp * dissipK / dt);
     	// there shouldn't be *2 in the end. For some reason Temperature converges to Tmp/2 without it.
-#ifdef _OPENMP
-	#pragma omp parallel for
-#else
-	#warning "OpenMP unused"
-#endif
-
-    	for(i = 0; i < Ntot; ++i){
-    		hostA[i] += (make_double3(gaussRand(b_d), gaussRand(b_d), gaussRand(b_d)) - hostV[i] * dissipK);
+    	for(i = 0; i < Ntot; ++i){ // this should be auto-paralleled
+    		hostA[i] += (make_double3(gaussRand(b_d), gaussRand(b_d), gaussRand(b_d)) - hostV[i] * dissipK); // Langevin
+    		//if(myRnd() < p_coll){
+    		//	hostV[i] = make_double3(gaussRand(sT), gaussRand(sT), gaussRand(sT)); // Andersen
+    		//}
     	}
     }
 
     return 0;
 }
 
-int TSpace::stepMY(void)
+int TSpace::stepVVR(void)
 {
     int i;
-    double D = 2 * R;
     double3 dx;
+    double D = 2 * R;
 
-    findAllA();
 #ifdef _OPENMP
-	#pragma omp parallel for
-#else
-	#warning "OpenMP unused"
+	#pragma omp parallel for private(dx)
 #endif
     for(i = 0; i < Ntot; ++i){
-    	hostV[i] += hostA[i] * dt;
+    	hostV[i] += hostA[i] * (dt * 0.5);
     	dx = hostV[i] * dt;
     	hostX[i] = shiftR(hostX[i] + dx, R, D);
     	hostXreal[i] += dx;
     }
 
+    findAllA();
+
+    for(i = 0; i < Ntot; ++i)
+    	hostV[i] += hostA[i] * (dt * 0.5);
+
     return 0;
 }
 
-int TSpace::stepVR(void)
+int TSpace::stepMY(void)
+// This one may seem similar to LP one. But it's not. In LP we have v(n+1/2) and x(n) and here we have v(n) and x(n)
 {
     int i;
-    double3 bv;
+    double D = 2 * R;
+    double3 dx;
+
+#ifdef _OPENMP
+	#pragma omp parallel for private(dx)
+#endif
+    for(i = 0; i < Ntot; ++i){
+    	dx = (hostV[i] + hostA[i] * (dt * 0.5)) * dt;
+    	hostX[i] = shiftR(hostX[i] + dx, R, D);
+    	hostXreal[i] += dx;
+    	hostOldX[i] = hostA[i]; // here it is actually old forces but not old coordinates
+    }
+
+    findAllA();
+
+    for(i = 0; i < Ntot; ++i)
+    	hostV[i] += (hostA[i] + hostOldX[i]) * (0.5 * dt);
+
+    return 0;
+}
+
+int TSpace::stepCVR(void)
+{
+    int i;
+    double3 bv, dx;
     double D = 2*R, dt2 = dt*dt;
 
     findAllA();
 #ifdef _OPENMP
-	#pragma omp parallel for private(bv)
-#else
-	#warning "OpenMP unused"
+	#pragma omp parallel for private(bv, dx)
 #endif
     for(i = 0; i < Ntot; ++i){
         bv = hostX[i];
-        hostX[i] = shiftR(hostX[i]*2 - hostOldX[i] + hostA[i]*dt2, R, D);
+        dx = hostX[i] - hostOldX[i] + hostA[i]*dt2;
+        hostX[i] = shiftR(hostX[i] + dx, R, D);
         // here we use 3 points - X[i-1], X[i], X[i+1]. Periodic boundaries are not checked to work correctly
+        hostXreal[i] += dx;
         hostV[i] = shiftR(hostX[i] - hostOldX[i], R, D)/(2*dt);
         hostOldX[i] = bv;
     }
@@ -965,14 +1009,20 @@ int TSpace::stepLP(void)
     double D = 2*R;
     double3 dx;
 
+#ifdef _OPENMP
+	#pragma omp parallel for private(dx)
+#endif
     // V is 1/2 time-step ahead of X
     for(i = 0; i < Ntot; ++i){
     	dx = hostV[i] * dt;
     	hostX[i] = shiftR(hostX[i] + dx, R, D); // finish previous step by modifying X
     	hostXreal[i] += dx;
     }
+
     findAllA();                                        // compute new A
-    for(i = 0; i < Ntot; ++i) hostV[i] += hostA[i]*dt; // compute new V
+
+    for(i = 0; i < Ntot; ++i)
+    	hostV[i] += hostA[i]*dt; // compute new V
 
     return 0;
 }
@@ -983,12 +1033,7 @@ int TSpace::stepRK(void)
     double dt_d2 = dt*0.5;
 
     findAllA();
-#ifdef _OPENMP
-	#pragma omp parallel for
-#else
-	#warning "OpenMP unused"
-#endif
-    for(i=0;i<Ntot;++i){
+    for(i=0;i<Ntot;++i){ // Here all loops should auto-paralelize themselves
     	hostOldX[i] = hostX[i];
 
     	hostVK[0][i] = hostA[i];
@@ -997,11 +1042,6 @@ int TSpace::stepRK(void)
     }
 
     findAllA();
-#ifdef _OPENMP
-	#pragma omp parallel for
-#else
-	#warning "OpenMP unused"
-#endif
     for(i=0;i<Ntot;++i){
     	hostVK[1][i] = hostA[i];
     	hostRK[1][i] = hostV[i] + hostVK[0][i] * dt_d2;
@@ -1009,11 +1049,6 @@ int TSpace::stepRK(void)
     }
 
     findAllA();
-#ifdef _OPENMP
-	#pragma omp parallel for
-#else
-	#warning "OpenMP unused"
-#endif
     for(i=0;i<Ntot;++i){
     	hostVK[2][i] = hostA[i];
     	hostRK[2][i] = hostV[i] + hostVK[1][i] * dt_d2;
@@ -1021,11 +1056,6 @@ int TSpace::stepRK(void)
     }
 
     findAllA();
-#ifdef _OPENMP
-	#pragma omp parallel for
-#else
-	#warning "OpenMP unused"
-#endif
 	for(i = 0; i < Ntot; ++i){
     	hostVK[3][i] = hostA[i];
     	hostRK[3][i] = hostV[i] + hostVK[2][i] * dt;
@@ -1040,7 +1070,7 @@ int TSpace::stepRK(void)
     return 0;
 }
 
-int TSpace::stepAdVR(void)
+int TSpace::stepAdCVR(void)
 {
     int i;
     double k1 = 0.1786178958448091;
@@ -1112,8 +1142,9 @@ int TSpace::computeEk(void)
 {
 	E.x = 0;
 	for(int i = 0; i < Ntot; ++i){
-		E.x += dot(hostV[i]) * 0.5;
+		E.x += dot(hostV[i]);
 	}
+    E.x *= 0.5;
 	if(std::abs(E.x) == INFINITY) return EkIsInf;
 	if((E.x == NAN) || (E.x == -NAN)) return EkIsNan;
 
@@ -1144,9 +1175,9 @@ int TSpace::computePressure(void)
 
 int TSpace::computeEp(void)
 {
-	int i, j;
+	unsigned int i, j, i_rev;
 	double3 r, m_x_curr;
-	double r2;
+	double r2, E_loc = 0;
 	double D = 2*R;
 
 	E.y = 0;
@@ -1156,21 +1187,22 @@ int TSpace::computeEp(void)
 
 // this openmp is checked - it has no influence on accuracy
 #ifdef _OPENMP
-	#pragma omp parallel for private(r2, j, r, m_x_curr)
-#else
-	#warning "OpenMP unused"
+	#pragma omp parallel for private(r2, j, r, m_x_curr, i_rev) schedule(guided) reduction(+: E_loc)
 #endif
 	for(i = 0; i < Ntot; ++i){
-		m_x_curr = -hostX[i];
-		for(j = i+1; j < Ntot; ++j){
+		i_rev = Ntot - 1 - i;
+		m_x_curr = -hostX[i_rev];
+		for(j = i_rev + 1; j < Ntot; ++j){
 			r = shiftR(hostX[j] + m_x_curr, R, D);
 			r2 = dot(r,r);
 			if(r2 < r_cut2)
-				hostE[i].y += getEp(r2);
+				//hostE[i_rev].y += getEp(r2);
+				E_loc += getEp(r2);
 		}
 	}
-	for(i = 0; i < Ntot; ++i) E.y += hostE[i].y;
-	//E.y -= getEp(r_cut2) * Ntot * (Ntot - 1) / 2; // substract Ecut
+	//for(i = 0; i < Ntot; ++i) E.y += hostE[i].y;
+	E.y = E_loc;
+	E.y -= getEp(r_cut2) * Ntot * (Ntot - 1) / 2; // substract Ecut
 
 	if(std::abs(E.y) == INFINITY) return EpIsInf;
 	if((E.y == NAN) || (E.y == -NAN)) return EpIsNan;
@@ -1189,6 +1221,33 @@ int TSpace::doEstep(void)
 	err_handl = computeEp();
 	if(err_handl) return err_handl;
 
+	double D = 2*R;
+	double3 dr, dv;
+	double r2, r4, r6;
+	unsigned int i, j, i_rev;
+#ifdef _OPENMP
+	#pragma omp parallel for private(r2, r4, r6, j, dr, dv, i_rev) schedule(guided)
+#endif
+	for(i = 0; i < Ntot; ++i){
+		i_rev = Ntot - 1 - i;
+		hostH[i_rev] = 0;
+		for(j = i_rev + 1; j < Ntot; ++j){
+			dr = shiftR(hostX[i_rev] - hostX[j], R, D);
+			dv = hostV[i_rev] - hostV[j];
+			r2 = 1 / dot(dr);
+			r4 = r2 * r2;
+			r6 = r4 * r2;
+
+			hostH[i] += (pow2(dot(dv, dr))*(7*r6-2)*r2*4 + dot(dv, dv)*(1-2*r6))*r4*r4*48;
+		}
+		hostH[i_rev] -= dot(hostA[i_rev], hostA[i_rev])*0.5;
+	}
+	Hshadow = 0;
+	for(i = 0; i < Ntot; ++i)
+		Hshadow += hostH[i];
+	Hshadow *=  (dt*dt/12);
+
+
     return 0;
 }
 
@@ -1200,7 +1259,7 @@ int TSpace::cudaDoEstep(void)
 	int i;
 	CUDA_CHECK(cudaMemcpy(devV, hostV, Ntot * sizeof(double3), cudaMemcpyHostToDevice));
 	kernel_FindE<<< nCudaB,BlockW >>>(devX, devV, devE, R, r_cut2, Ntot);
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 	CUDA_CHECK(cudaMemcpy(hostE, devE, nCudaB * sizeof(double2), cudaMemcpyDeviceToHost));
 	E.x = E.y = 0;
 	for(i = 0; i < nCudaB; ++i) E += hostE[i];
@@ -1276,7 +1335,7 @@ int TSpace::GPU_findAllA(void)
 {
 	CUDA_CHECK(cudaMemcpy(devX, hostX, Ntot*sizeof(double3), cudaMemcpyHostToDevice));
 	kernel_FindAllA<<< nCudaB,BlockW >>>(devX, devA, devPressure, R, r_cut2, Ntot);
-	CUDA_CHECK(cudaThreadSynchronize());
+	CUDA_CHECK(cudaDeviceSynchronize());
 	CUDA_CHECK(cudaMemcpy(hostA, devA, Ntot*sizeof(double3), cudaMemcpyDeviceToHost));
 	CUDA_CHECK(cudaMemcpy(hostPressure, devPressure, Ntot*sizeof(double1), cudaMemcpyDeviceToHost));
 

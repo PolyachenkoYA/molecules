@@ -19,7 +19,7 @@ def main():
     args = sys.argv[1:]
     argc_min = 1
     if len(args) < argc_min:
-        print('usage: ./full_proc.py      model_name     [keys,    N0,     N1, ...]')
+        print('usage: ' + sys.argv[0] + '    model_name     [keys,    N0,     N1, ...]')
         sys.exit(1)
         
     model_name, keys, model_dir, graph_dir, time_gaps_str, N0, N1, Nfrm, E, P, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 1, 2, 3)

@@ -1,2 +1,0 @@
-          Ntot             n          n_cr         r_cut          endT        dumpDT            dt           Tmp       dissipK    TmpStabEps    TmpStabGap      compMode       binOutF
-          1024           0.2           0.7             3            20            16           256       2          0.2          0.05          1000             2             0

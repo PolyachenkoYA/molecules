@@ -6,3 +6,6 @@ USER_OBJS :=
 
 LIBS := -lgomp
 
+DEPS := \
+./src/subdir.mk \
+../../Space.cu

@@ -13,19 +13,20 @@ void print_sys_info(ostream &out)
 		<< "CUDA_BlockW = " << BlockW << "\n";
 }
 
-void time_progress(time_t real_start_t, time_t curr_t, double done_part, string proc_name, int extra_strN)
+void time_progress(double gt, double real_start_t, double curr_t, double done_part, string proc_name, int extra_strN)
 {
-	time_t real_t = curr_t - real_start_t;
+	double real_t = curr_t - real_start_t;
 	double left_t = done_part > 0 ? real_t * (1 / done_part - 1) : -1;
 	int i, b_i = done_part > 0 ? int(left_t) : -1;
-	time_t b_t = done_part > 0 ? (curr_t + b_i) : -1;
+	time_t curr_ctime = int(gt + curr_t);
+	time_t done_ctime = int(gt + curr_t + left_t);
 
 	cout << proc_name << "\n"
 		 << 100*done_part << " %          \n"
-		 << "time used " << real_t/3600 << ":" << (real_t%3600)/60 << ":" << real_t%60 << "          \n"
+		 << "time spent " << int(real_t)/3600 << ":" << (int(real_t)%3600)/60 << ":" << int(real_t)%60 << "          \n"
 		 << "time left " << b_i/3600 << ":" << (b_i%3600)/60 << ":" << b_i%60 << "          \n"
-		 << "last save: " << string(ctime(&curr_t))
-		 << "finish   : " << string(ctime(&b_t))
+		 << "last save: " << string(ctime(&curr_ctime))
+		 << "finish   : " << string(ctime(&done_ctime))
 		 << "\r";      // goto begin & erase
 	for(i = 0; i < extra_strN + 6; ++i){
 		cout << "\033[A"; // up & erase
@@ -85,9 +86,9 @@ string getErrStr(int n, string s)
     switch(n){
 		case SayIt: s_ret = ""; break;
 
-		case CantOpenFile: s_ret = "Can't open file\n"; break;
-		case CantOpenPrevFile: s_ret = "Can't open .prev file\n"; break;
-		case CantCreateFile: s_ret = "Can't create file\n"; break;
+		case CantOpenFile: s_ret = "Can't open file"; break;
+		case CantOpenPrevFile: s_ret = "Can't open .prev file"; break;
+		case CantCreateFile: s_ret = "Can't create file"; break;
 		case WrongScriptFormat: s_ret = ""; break;
 		case Nis1: s_ret = "N == 1"; break;
 		case NLessOrEq0: s_ret = "N <= 0"; break;
@@ -149,6 +150,7 @@ string getErrStr(int n, string s)
 		case CantCenterCM: s_ret = "Can't center CM"; break;
 		case NisntCubeForCristal: s_ret = "System density may result cristal state but N isn't valid for generating one. N must be N * 2 = m^3 for FCC lattice."; break;
 		case YetUnsupportedInput: s_ret = "Input params you set aren't fully supported currently"; break;
+		case NthreadsLessOrEq0: s_ret = "Nthreads <= 0"; break;
 
 		case CUDA_ERROR_CHECK_CONST: s_ret = ""; break;
 		case CUDA_WRONG_DevMem_ALLOC: s_ret = "cuda: wrong device memory allocation"; break;

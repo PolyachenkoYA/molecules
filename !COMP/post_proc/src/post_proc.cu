@@ -20,7 +20,7 @@ int main(int argc, char* argv[])
         int spPerNum = 20;
         ofstream Fout;
         string buf;
-        time_t rStime;
+        double rStime;
 
         Space.GlxName = argv[1];
         Space.LogFName = "./" + Space.GlxName + "/post_proc.log";
@@ -118,7 +118,7 @@ int main(int argc, char* argv[])
         }
         Space.sayLog("   post processing{\n");
 
-        time(&rStime);
+        rStime = omp_get_wtime();
         for(i = 0; i < Space.Nfrm; ++i){
         	currentFileName = "./" + Space.GlxName + "/" + Space.FramesFilesFolder + "/" + toString(i) + "." + Space.ParticleFileExt;
             if(sayError(Space.LogFName, Space.LoadParticles(currentFileName,Space.binOutF,PostProcLoadMode),"LoadStars") > 0) return 3;
@@ -145,7 +145,7 @@ int main(int argc, char* argv[])
                 	Space.sayLog("   ...computed\n");
                 	break;
             }
-            time_progress(rStime, time(0), double(i+1) / Space.Nfrm, job_name);
+            time_progress(Space.gt, rStime, omp_get_wtime(), double(i+1) / Space.Nfrm, job_name);
         }
         Space.sayLog("   }post processing done\n");
 
@@ -179,3 +179,4 @@ int main(int argc, char* argv[])
     Space.sayLog("all is ok |post_proc " + Space.sessionID);
     return 0;
 }
+

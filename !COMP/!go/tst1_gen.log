@@ -1,0 +1,21 @@
+generation session Fri Jan 10 18:13:06 2020
+   LoadParams (./tst_param.dat) {
+      Parameters were loaded
+      Applying input{
+         Parameters were checked
+      }
+   }
+   CPU in use
+   CreateParticles{
+      particles generation...
+      ... particles generation DONE
+      Center of mass stabilized
+   }
+      SaveStars (./tst1_particles.xyz){
+         Header was written
+         Stars were saved(./tst1_particles.xyz)
+   SaveParams(./tst1_param.dat){
+      text part was written
+      numeric part was written
+   }
+all is ok | gen Fri Jan 10 18:13:06 2020
