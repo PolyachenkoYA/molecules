@@ -1,4 +1,4 @@
-function [names, colors] = def_names()
+function names = def_names()
     names.frames_path = 'frames';
     names.E_filename = 'E.txt';
     names.T_filename = 'T.txt';
@@ -13,8 +13,6 @@ function [names, colors] = def_names()
     names.z_clmn = 3;
     names.vx_clmn = 4;
     names.vy_clmn = 5;
-    names.vz_clmn = 6;    
-    
-    colors = getMyColors;    
+    names.vz_clmn = 6;  
 end
 

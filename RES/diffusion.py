@@ -43,7 +43,7 @@ def main():
     make_pics = (my.find_key(keys, 'pics') or draw_on_screen)
     
     # --------------------------------- theory prediction ------------------------------------------
-    n0 = params['Ntot'] / math.pow(2*params['R'], 3)
+    n0 = params['n']
     r_th0 = 1
     lmd_th0 = 1/(n0 * math.pi * r_th0**2 * math.sqrt(2))
             
@@ -59,7 +59,7 @@ def main():
     
     # --------------------------------- experimant data ------------------------------------------
     diff_file_path = os.path.join(model_dir, my.diff_filename)
-    if(os.path.isfile(diff_file_path)):
+    if(os.path.isfile(diff_file_path) and (not my.find_key(keys, 'recomp'))):
         data = np.loadtxt(diff_file_path)
         #data = np.delete(data, (0), axis=0)
         #data = np.delete(data, (0), axis=1)
@@ -72,7 +72,6 @@ def main():
                 x_cm[i][j] = data[j+1][i]
                 v_cm[i][j] = data[j+4][i]
         data = None;
-        
     else:
         r2 = []
         dr = [0,0,0]
@@ -147,7 +146,7 @@ def main():
             k_exp = my.myeps
             
     xa0 = abs(approx_r2(0))
-    #tau = xa0/k_exp
+    tau = xa0/k_exp
             
     c_exp = xa0 / k_exp**2
     B = (1 - r2[-2] / (k_exp * t[N1-1])) * math.sqrt(t[N1-1])
@@ -168,6 +167,8 @@ def main():
     #lmd_2 = k_exp/4 * math.sqrt(math.pi / (Tmp_av*2))
     lmd_2 = my.lmd_2(k_exp, 1, Tmp_av)
     D_Einst = lmd_2 * math.sqrt(8 * Tmp_av / math.pi) / 3
+    
+    selfconsist = my.rel_err(lmd_1, lmd_2)
     
     lmd_3 = my.lmd_3(logBeg_approx.c[0], logBeg_approx.c[1], logEnd_approx.c[0], logEnd_approx.c[1], 1, Tmp_av) # tau -> lmd
     lmd_4 = my.lmd_4(logBeg_approx.c[0], logBeg_approx.c[1], logEnd_approx.c[0], logEnd_approx.c[1]) # straight lmd
@@ -210,22 +211,23 @@ def main():
             #tau = 1
             x = t[N0:N1]
             x_draw = [_x/tau for _x in x]
-            plt.plot(x_draw, r2, '-') # experiment data
+            plt.plot(x_draw, r2, '-', label="exp") # experiment data
             
             x = t[N0:N1]
             r2_th = [k_exp*tau*(_x/tau - 1 + math.exp(- _x/tau)) for _x in x]
             x_draw = [_x/tau for _x in x]
-            plt.plot(x_draw, r2_th, '--')  # my approximation            
+            plt.plot(x_draw, r2_th, '--', label="my_th")  # my approximation            
             
-            x = t[(N0 + subdiff_c):N1]
-            subdiff_app = [k_exp*_x*(1 - B/math.sqrt(_x)) for _x in x]
-            x_draw = [_x/tau for _x in x]
-            plt.plot(x_draw, subdiff_app, '-.') # subdiff approximation
+            if(my.find_key(keys, 'subdiff')):
+                x = t[(N0 + subdiff_c):N1]
+                subdiff_app = [k_exp*_x*(1 - B/math.sqrt(_x)) for _x in x]
+                x_draw = [_x/tau for _x in x]
+                plt.plot(x_draw, subdiff_app, '-.', label="subdiff") # subdiff approximation
                                     
             x = [t[N0], t[N1-1]]
             y = [approx_r2(_x) for _x in x]
             x_draw = [_x/tau for _x in x]
-            plt.plot(x_draw, y, '--') # line approximation            
+            plt.plot(x_draw, y, '--', label="line asimp") # line approximation            
             
             plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
             plt.ticklabel_format(style='sci', axis='x', scilimits=(0,0))
@@ -234,6 +236,7 @@ def main():
             plt.grid(True)
             #plt.title('r^2(t) | k_exp = ' + str(my.str_sgn_round(k_exp,3)) + ', k_th = ' + str(my.str_sgn_round(k_th,3)))
             plt.title('r^2(t) | tau = ' + my.str_sgn_round(tau,3) + ' | B = ' + my.str_sgn_round(B,3))
+            plt.legend()
             if(draw_on_screen):
                 figs[fig_c].show()
             path = os.path.join(graph_dir, 'r2(t)_' + time_gaps_str + '.png')
@@ -245,24 +248,25 @@ def main():
             
             x = t[N0:N1]
             x_draw = [_x/tau for _x in x]
-            plt.plot(x_draw, r2, '-') # experiment data
+            plt.plot(x_draw, r2, '-', label="exp") # experiment data
                         
             x = [_x/tau for _x in t[N0:N1]]
-            plt.plot(x, r2_th, '--') # my approximation         
+            plt.plot(x, r2_th, '--', label="my_th") # my approximation         
             
-            x = t[(N0 + subdiff_c):N1]
-            x_draw = [_x/tau for _x in x]            
-            plt.plot(x_draw, subdiff_app, '--') # subdiff approximation
+            if(my.find_key(keys, 'subdiff')):
+                x = t[(N0 + subdiff_c):N1]
+                x_draw = [_x/tau for _x in x]            
+                plt.plot(x_draw, subdiff_app, '--', label="subdiff") # subdiff approximation
             
             x = [t[N0], t[N0+c2]]
             y = [math.exp(logBeg_approx(math.log(_x))) for _x in x]
             x_draw = [_x/tau for _x in x]
-            plt.plot(x_draw, y, '--') # beginning approximation        
+            plt.plot(x_draw, y, '--', label="ballistic") # beginning approximation        
             
             x = [t[N0+c1], t[N1-1]]
             y = [math.exp(logEnd_approx(math.log(_x))) for _x in x]
             x_draw = [_x/tau for _x in x]            
-            plt.plot(x_draw, y, '--') # ending approximation            
+            plt.plot(x_draw, y, '--', label="linear") # ending approximation            
                     
             plt.xlabel('t/tau')
             plt.ylabel('<r^2>')
@@ -270,6 +274,7 @@ def main():
             plt.xscale('log')
             plt.yscale('log')
             plt.title('log(r2) | k_begin = ' + str(my.str_sgn_round(logBeg_approx.c[0],3)) + '; k_end = ' + str(my.str_sgn_round(logEnd_approx.c[0],3)))
+            plt.legend()
             if(draw_on_screen):
                 figs[fig_c].show()
             path = os.path.join(graph_dir, 'r2(t)_loglog_' + time_gaps_str + '.png')
@@ -278,19 +283,20 @@ def main():
             # -------------------------------- r(t) ------------------------------------------
             fig_c += 1
             figs.append(plt.figure(fig_c))        
-            plt.plot(t[N0:N1], r1, '-') # experiment data
+            plt.plot(t[N0:N1], r1, '-', label="exp") # experiment data
                     
             x = t[N0:N1]
             y = my.arrFnc(r2_th, math.sqrt)
-            plt.plot(x, y, '--') # my approximation 
+            plt.plot(x, y, '--', label="my_th") # my approximation 
             
-            x = t[(N0 + subdiff_c):N1]
-            y = my.arrFnc(subdiff_app, math.sqrt)
-            plt.plot(x, y, '--') # sudiff approximation             
+            if(my.find_key(keys, 'subdiff')):
+                x = t[(N0 + subdiff_c):N1]
+                y = my.arrFnc(subdiff_app, math.sqrt)
+                plt.plot(x, y, '--', label="subdiff") # sudiff approximation             
             
             x = [t[N0], t[c2]]
             y = [approx_r1(_x) for _x in x]
-            plt.plot(x, y, '--') # beginning approximation             
+            plt.plot(x, y, '--', label="ballistic") # beginning approximation             
                 
             plt.xlabel('t')
             plt.ylabel('sqrt(<r^2>)')
@@ -384,7 +390,13 @@ def main():
             path = os.path.join(graph_dir, 'v_cm(t)_' + time_gaps_str + '.png')
             figs[fig_c].savefig(path)    
             
-        print(n0, Tmp_av, lmd_th0, lmd_th1, lmd_th2, lmd_1, lmd_2, lmd_3, lmd_4)                                
+        if(my.find_key(keys, 'human')):
+            print('n = ', n0, '; T = ', Tmp_av)
+            print('lmd_0 = ', lmd_th0, '; lmd_T<1 = ', lmd_th1, '; lmd_T>1 = ', lmd_th2)
+            print('lmd_a = ', lmd_1, '; lmd_tg = ', lmd_2, '; lmd_exp_intercept = ', lmd_3, '; lmd_tau_intercept = ', lmd_4)
+            print('inconsistency = ', selfconsist)
+        else:
+            print(n0, Tmp_av, lmd_th0, lmd_th1, lmd_th2, lmd_1, lmd_2, lmd_3, lmd_4)
         #print('D_Einst = ' + str(D_Einst))
         
     if(draw_on_screen):

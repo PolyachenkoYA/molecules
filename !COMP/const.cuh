@@ -80,7 +80,7 @@ Ro = 1 = 1.573656E-19 kg/m^3
 #define CopyValues 2
 #define CopyStars 3
 
-#define BlockW 512 // for double set 256 in case of share memory amount
+#define BlockW 64 // for double set 256 in case of share memory amount
 /*
  * max = 512
  *    (for my GTX 960 formal max is 1024,

@@ -1,16 +1,16 @@
 %clear;
 close all;
 
-need_to_load = 0;
-reproc_data = 0;
+need_to_load = 1;
+reproc_data = 1;
 r2_time_cut = 1;
 cubo_time_cut = 20;
 scale = 'linear';
-[names, colors] = def_names;
-names.model_name = 'nu0.1';
+names = def_names;
+names.model_name = 'tst1';
 %names.model_name = 'tst';
 %names.model_name = 'T0.5_n1.3';
-DATA_path = fullfile(pwd, 'DATA', 'Anderson', '1');
+DATA_path = fullfile(pwd, 'DATA');
 model_path = fullfile(DATA_path, names.model_name);
 
 % --------------------------- load data ---------------------------------

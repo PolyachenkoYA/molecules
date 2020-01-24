@@ -299,7 +299,7 @@ int TSpace::CreateHeadF(string FileName)
 int TSpace::SaveParams(string FileName)
 {
 	sayLog("   SaveParams(" + FileName + "){\n");
-    int i,spForV = 14;
+    int i,spForV = 17;
     ofstream Fout(FileName.c_str());
     if(!Fout){return CantOpenFile;}
     Fout.precision(PrintPres);
@@ -366,7 +366,7 @@ int TSpace::restoreForComp(void)
 int TSpace::SaveParticles(string FileName, bool bin, int mode)
 {
 	sayLog(string("      SaveStars (") + FileName + string("){\n"));
-	int i, spForV = 17;
+	int i, spForV = 18;
     ofstream Fout;
 
     if(bin){
@@ -421,8 +421,10 @@ int TSpace::checkInput(int _n, double _dumpDT, double _dt)
        (compMode != RKcompMode) &&
        (compMode != AdCVRcompMode) &&
        (compMode != VVRcompMode) &&
-       (compMode != MYcompMode))
-      { return WrongCompMode; }
+       (compMode != MYcompMode)){
+    	sayLog("\ncompMode = " + toString(compMode) + "\n", 1);
+    	return WrongCompMode;
+    }
     if(((compMode == RKcompMode) || (compMode == AdCVRcompMode))){
     	sayLog("\nRK4 and AdCVR schemes are not supported\n", 1);
     	return YetUnsupportedInput;
@@ -875,7 +877,7 @@ int TSpace::doTimeStep(int cmpMode)
 
 int TSpace::CPU_findAllA(void)
 {
-    unsigned long i,j;
+    int i,j;
     double3 bv, m_x_curr;
     double r2, _f;
     double D = 2 * R;

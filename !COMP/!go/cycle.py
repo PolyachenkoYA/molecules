@@ -7,11 +7,9 @@
 # http://code.google.com/edu/languages/google-python-class/
 
 import sys
-import numpy as np
-import math
 import os
-import matplotlib.pyplot as plt
 import re
+import pathlib
 
 import mylib_molecules as my
 
@@ -38,7 +36,7 @@ def main():
             
     rc = [3, 4]
     rc = [2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 17, 20, 23, 26, 30, 35, 40, 45, 50]
-    rc = [55, 60, 65, 70, 75, 80, 85, 50*math.sqrt(3), 100]
+    rc = [55, 60, 65, 70, 75, 80, 85, 50*1.73205080757, 100]
     rc = [0.1, 90]
     
     dt_arr = [128,    256,    512,    640,   1024,   1280,   2048,   2560,   3200,   4096,   5120,   6400,   8192,  10240,  12800,  16000,  16384,  20480,  25600,  32000,  32768,  40960,  51200]
@@ -73,8 +71,8 @@ def main():
         Np_arr = [32, 64, 128, 256, 512]
         #Np_arr = [512]
     else:
-        N_arr = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072]
-        #N_arr = [1024]
+        N_arr = [32, 16, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072]
+        N_arr = [32]
         
         Np_arr = [1, 2, 4, 5, 8]
         #Np_arr = [4]
@@ -82,7 +80,7 @@ def main():
     # ---------------------- N time ------------------------
     for Npi in Np_arr:
         if(use_gpu):
-            cuh_file_path = os.path.join('/home', 'ypolyach', '!molecules', '!COMP', 'const.cuh')
+            cuh_file_path = os.path.join(pathlib.Path.home(), '!molecules', '!COMP', 'const.cuh')
             cuh_file = open(cuh_file_path, 'r')
             cuh_codelines = cuh_file.read()
             cuh_file.close()
@@ -116,7 +114,7 @@ def main():
                 return
         
             if(not my.run_it('rm ' + new_name + '_param.dat')):
-                return
+               return
             if(not my.run_it('rm ' + new_name + '_particles.xyz')):
                 return            
 

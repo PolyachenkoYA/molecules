@@ -36,6 +36,7 @@ function [params, head] = read_params(full_path, names, mode)
         params.TmpStabGap = data.data(k); k = k + 1;
         params.compMode = data.data(k); k = k + 1;
         params.binOutF = data.data(k); k = k + 1;        
+        params.Nthreads = data.data(k); k = k + 1; 
     end
             
     params.R = (params.Ntot / params.n)^(1/3) / 2;

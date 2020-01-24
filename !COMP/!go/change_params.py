@@ -7,10 +7,7 @@
 # http://code.google.com/edu/languages/google-python-class/
 
 import sys
-import numpy as np
-import math as mth
 import os
-import matplotlib.pyplot as plt
 
 import mylib_molecules as my
 
