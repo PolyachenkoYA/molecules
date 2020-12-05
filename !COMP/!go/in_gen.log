@@ -1,0 +1,9 @@
+generation session Sat Dec  5 22:40:50 2020
+   './tst_param.dat' not found
+   trying to find './param.dat'
+   LoadParams (./param.dat) {
+
+error #201
+Can't open file
+(LoadParams)
+
