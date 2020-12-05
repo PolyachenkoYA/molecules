@@ -1,2 +1,2 @@
              Ntot                n             n_cr            r_cut             endT           dumpDT               dt              Tmp          dissipK       TmpStabEps       TmpStabGap         compMode          binOutF         Nthreads
-             4096              0.3              0.7              2.5                2               64              512      2.033428054              0.1             0.02              500               -5                0                2
+             4096              0.3              0.7              2.5                2               64              512      1.977405148              0.1             0.02              500               -5                0                2

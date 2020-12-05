@@ -27,6 +27,16 @@ Go to the working directory:
 
 5) `cd \!go`
 
+python libs you need:
+
+- numpy
+
+- matplotlib
+
+- scipy
+
+- shutil
+
 Run the full computation from generating a system to plotting results:
 
 6) `python full_cycle.py tst in -all`
