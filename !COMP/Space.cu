@@ -767,7 +767,7 @@ int TSpace::main_compute(void)
 	b_i = saveDump(FoutT, FoutE, FoutP, FramePath);
 	if(b_i) return b_i;
 
-    cout << "Galaxy name : '" << GlxName << "'\n";
+    cout << "Model name : '" << GlxName << "'\n";
 
     kt = real_time_k();
 

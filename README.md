@@ -18,13 +18,9 @@ Put the python code to where it will be visible (substitute your python version 
 
 3) `cp ./mylib_molecules.py $HOME/anaconda3/lib/python3.7/site-packages/mylib_molecules.py`
 
-`nvcc` is assumed to be in `/usr/local/cuda-10.1/bin/nvcc`
-
-If it is not, then you need to write a correct way to call `nvcc` on your machine. It 
-
 Compile:
 
-4) `./recomplie_all.sh`
+4) `./recompile_all.sh`
 
 ## simple test
 Go to the working directory:
