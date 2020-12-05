@@ -8,6 +8,12 @@ Matlab + Python3 + [ovito](https://ovito.org) for visualisation of results
 # installation & usage
 
 ## install 
+Python libs you need:
+- numpy
+- matplotlib
+- scipy
+- shutil
+
 Download the repo:
 
 1) `git clone https://github.com/PolyachenkoYA/molecules.git`
@@ -26,16 +32,6 @@ Compile:
 Go to the working directory:
 
 5) `cd \!go`
-
-python libs you need:
-
-- numpy
-
-- matplotlib
-
-- scipy
-
-- shutil
 
 Run the full computation from generating a system to plotting results:
 
