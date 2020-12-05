@@ -361,12 +361,18 @@ def full_cycle_fnc(input_params_name, model_name, keys, args):
         print(command_to_run)
         os.chdir('../../')
         
-        run_it('mv ' + os.path.join('./', '!COMP', '!go', model_name) + ' ' + os.path.join('./', 'RES', 'DATA') + '            ')
+        src = os.path.join('./', '!COMP', '!go', model_name)
+        dst = os.path.join('./', 'RES', 'DATA')
+        cmd = 'mv ' + src + ' ' + dst + '            '
+        print(cmd)
+        shutil.move(src, dst)
+        #run_it(cmd)
         
         command_to_run = 'cd ./RES' + '            '
         print(command_to_run)
         os.chdir('./RES')   
         
         run_it('./full_post_proc.py ' + model_name + ' ' + extra_args_str)
+
 
 

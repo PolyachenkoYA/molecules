@@ -29,7 +29,7 @@ Go to the working directory:
 
 Run the full computation from generating a system to plotting results:
 
-6) `python full_cycle.py tst -all`
+6) `python full_cycle.py tst in -all`
 
 Go see the results:
 
