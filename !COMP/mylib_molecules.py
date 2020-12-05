@@ -2,13 +2,13 @@ import sys
 import numpy as np
 import math as math
 import os
-import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import re
 import matplotlib
 import scipy
 import scipy.signal
 import pathlib
+import shutil
 
 
 RES_SUBPATH = 'graph'
@@ -334,18 +334,23 @@ def change_params_fnc(old_name, new_name, args=[]):
         params[args[2*i]] = args[2*i+1]
     save_params(new_name, params)
 
-def full_cycle_fnc(model_name, keys, args):
-    extra_args_str = ' '.join(args[1:])
+def full_cycle_fnc(input_params_name, model_name, keys, args):
+    extra_args_str = ' '.join(args[2:])
         
     if(find_key(keys, 'gen')):
-        if(not run_it('./gen ' + model_name)):
+        if(not run_it('./gen ' + input_params_name + ' ' + model_name)):
             return
 
     if(not run_it('./comp ' + model_name + '            ')):
         return
 
     if(find_key(keys, 'gen')):
-        run_it('mv ' + model_name + '_gen.log ' + os.path.join('./', model_name, 'gen.log') +  '            ')
+        src = model_name + '_gen.log'
+        dst = os.path.join('./', model_name, 'gen.log')
+        cmd = 'mv ' + src + ' ' + dst +  '            '
+        print(cmd)
+        shutil.move(src, dst)
+        #run_it(cmd)
         
     if(find_key(keys, 'cond') or find_key(keys, 'condition')):
         if(not run_it('./post_proc ' + model_name + ' 3 150' + '                                 ')):
@@ -363,4 +368,5 @@ def full_cycle_fnc(model_name, keys, args):
         os.chdir('./RES')   
         
         run_it('./full_post_proc.py ' + model_name + ' ' + extra_args_str)
+
 
