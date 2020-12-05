@@ -317,9 +317,10 @@ def main():
             y = [r2[_i] - r2_th[_i] for _i in range(len(r2_th))]
             plt.plot(x, y, '-') # my approximation            
 
-            x = t[(N0 + subdiff_c):N1]
-            y = [r2[_i + subdiff_c] - subdiff_app[_i] for _i in range(0, N1 - N0 - subdiff_c)]
-            plt.plot(x, y, '--') # subdiff approximation                        
+            if(my.find_key(keys, 'subdiff')):
+                x = t[(N0 + subdiff_c):N1]
+                y = [r2[_i + subdiff_c] - subdiff_app[_i] for _i in range(0, N1 - N0 - subdiff_c)]
+                plt.plot(x, y, '--') # subdiff approximation                        
             
             plt.plot([t[N0+1], t[N1-1]], [0, 0], '--')
             
@@ -344,9 +345,10 @@ def main():
             y = [my.rel_err(r2[_i], r2_th[_i]) for _i in range(tmp, N1 - N0 - subdiff_c)]
             plt.plot(x, y, '-') # my approximation
             
-            x = t[(N0 + subdiff_c + tmp):N1]
-            y = [my.rel_err(r2[_i + subdiff_c],subdiff_app[_i]) for _i in range(tmp, N1 - N0 - subdiff_c)]
-            plt.plot(x, y, '-.') # subdiff approximation                        
+            if(my.find_key(keys, 'subdiff')):
+                x = t[(N0 + subdiff_c + tmp):N1]
+                y = [my.rel_err(r2[_i + subdiff_c],subdiff_app[_i]) for _i in range(tmp, N1 - N0 - subdiff_c)]
+                plt.plot(x, y, '-.') # subdiff approximation                        
             
             plt.plot([t[N0+1], t[N1-1]], [0, 0], '--')
             
