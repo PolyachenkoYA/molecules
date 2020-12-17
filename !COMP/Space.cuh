@@ -15,7 +15,7 @@
 #include "format.cuh"
 
 __global__ void kernel_FindAllA(double3 *devX, double3 *devA, double *devPressure, double R, double r_cut, int Ntot);
-__global__ void kernel_FindE(double3 *devX, double3 *devV, double2 *devE, double R, double r_cut, int Ntot);
+__global__ void kernel_FindE(double3 *devX, double3 *devV, double3 *devE, double R, double r_cut, int Ntot);
 
 class TSpace;
 
@@ -36,13 +36,13 @@ public:
 	// nCudaB - number of active CUDA blocks
 	double *devPressure, *hostPressure;
 	double *hostH;
+	double3 *devE, *hostE;
 	double3 *devX, *hostX, *hostXreal;
 	double3 *devV, *hostV;
 	double3 *devA, *hostA;
 	double3 *hostOldX;
 	double3 **hostVK, **hostRK;
-	double2 *devE, *hostE;
-	double2 E;
+	double3 E;
 	double3 L, Xcm;
 	double *gCondFnc;
 	int Nslice;

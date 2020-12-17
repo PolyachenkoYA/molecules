@@ -28,9 +28,10 @@ def main():
     # std_start(args, model_i, N0_i, N1_i):
     # model_name, keys, graph_dir, time_gaps_str, N0, N1, Nfrm, E, Tmp, Tmp_av, t, stabTind, params
     
-    for i in range(N0, N1):
-        for j in range(3):
-            E[i,j] /= params['Ntot']
+    #for i in range(N0, N1):
+    #    for j in range(4):
+    #        E[i,j] /= params['Ntot']
+    E /= params['Ntot']
         
     fig_c = -1
     fig = []
@@ -41,7 +42,7 @@ def main():
     fig_c += 1
     # 0
     fig.append(plt.figure(fig_c))
-    plt.plot(t[N0:N1], E[N0:N1,2], '-', label = 'Etot')    
+    plt.plot(t[N0:N1], E[N0:N1,2], '-', label = 'Etot')
     plt.plot(t[N0:N1], E[N0:N1,0], '-', label = 'Ek')
     plt.plot(t[N0:N1], E[N0:N1,1], '-', label = 'Ep')
     plt.xlabel('time')
@@ -52,16 +53,47 @@ def main():
     if(draw_on_screen):
         fig[fig_c].show()
     path = os.path.join(graph_dir, 'Energy3_' + time_gaps_str + '.png')
-    fig[fig_c].savefig(path)    
+    fig[fig_c].savefig(path)
     
     # 1
     E0 = np.mean(E[N0:N1,0]) + abs(np.mean(E[N0:N1,1]))
     path = os.path.join(graph_dir, 'dE_norm_' + time_gaps_str + '.png')
     E_av = np.mean(E[N0:N1,2])
     #y = [(e_el - E[N0,2])/E0 for e_el in E[N0:N1,2]]
-    y = [(e_el - E_av)/E_av for e_el in E[N0:N1,2]]
+    y = [(e_el/E_av - 1) for e_el in E[N0:N1,2]]
     fig_c, fig = my.plot_error(fig_c, fig, t[N0:N1], y, y0=0, y_lbl='E/<E>-1', tit='E/<E> - 1 | std = ' + my.str_sgn_round(np.std(y),3), pic_path=path, show_key=draw_on_screen)
     
+    # shadow error
+    E0 = np.mean(E[N0:N1,0]) + abs(np.mean(E[N0:N1,1]))
+    path = os.path.join(graph_dir, 'Hshd_norm_' + time_gaps_str + '.png')
+    H_av = np.mean(E[N0:N1,3])
+    y = [(e_el/H_av - 1) for e_el in E[N0:N1,3]]
+    #print(E[N0:N1, :])
+    fig_c, fig = my.plot_error(fig_c, fig, t[N0:N1], y, y0=0, y_lbl='H/<H>-1', tit='H/<H> - 1 | std = ' + my.str_sgn_round(np.std(y), 3), pic_path=path, show_key=draw_on_screen)    
+    
+    # shadow 
+    fig_c += 1
+    fig.append(plt.figure(fig_c))
+    plt.plot(t[N0:N1], E[N0:N1,2], '-', label = 'Etot')
+    plt.plot(t[N0:N1], E[N0:N1,3], '-', label = 'd2H')
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3,
+               ncol=2, mode="expand", borderaxespad=0.)
+    if(draw_on_screen):
+        fig[fig_c].show()
+    path = os.path.join(graph_dir, 'Energy_H_' + time_gaps_str + '.png')
+    fig[fig_c].savefig(path)
+    
+    # shadow term
+    fig_c += 1
+    fig.append(plt.figure(fig_c))
+    plt.plot(t[N0:N1], E[N0:N1,3] - E[N0:N1,2], '-', label = '$d^2 H$')
+    plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, mode="expand", borderaxespad=0.)
+    if(draw_on_screen):
+        fig[fig_c].show()
+    path = os.path.join(graph_dir, 'd2H_' + time_gaps_str + '.png')
+    fig[fig_c].savefig(path)    
+    
+    # Pressure
     path = os.path.join(graph_dir, 'Pressure_' + time_gaps_str + '.png')
     P_th = params['n'] * params['Tmp']
     y = P[N0:N1]

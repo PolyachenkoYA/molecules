@@ -191,9 +191,19 @@ __host__ __device__ double getForce(double r2)
 	return 48.0 * ar6 * r2 * (0.5 - ar6);
 }
 
-__host__ __device__ double getEp(double r2)
+__host__ __device__ double getEp(double ar2)
 {
-	r2 = 1/r2;
-	double ar6 = pow3(r2);
+	double ar6 = pow3(ar2);
 	return 4 * ar6 * (ar6 - 1);
+}
+
+__host__ __device__ double getd2H(double ar2, double3 dr, double3 dv, double3 v1)
+{
+	double ar4 = ar2 * ar2;
+	double ar8 = ar4 * ar4;
+	double ar10 = ar8 * ar2;
+	double ar14 = ar10 * ar4;
+	double ar16 = ar8 * ar8;
+
+	return 2 * dot(v1, dr) * dot(dr, dv) * (168 * (ar16 - 2.0/7 * ar10)) + dot(v1, dv) * (24 * (ar8 * 0.5 - ar14));
 }

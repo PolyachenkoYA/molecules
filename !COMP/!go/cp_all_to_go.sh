@@ -1,2 +1,3 @@
 cd ..
-./recompile_apply.sh
+./recompile_all.sh
+cd \!go

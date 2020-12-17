@@ -42,4 +42,5 @@ __host__ __device__ double3 shiftRtrue(double3 r, double R);
 __host__ __device__ double3 shiftRtrue(double3 r, double R, double D);
 __host__ __device__ double getForce(double r2);
 __host__ __device__ double getEp(double r2);
+__host__ __device__ double getd2H(double ar2, double3 dr, double3 dv, double3 v1);
 

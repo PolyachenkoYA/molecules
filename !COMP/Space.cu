@@ -24,7 +24,7 @@ TSpace::TSpace()
 	sessionID = string(ctime(&global_start_time));
 	gt = global_start_time - omp_get_wtime();
 
-	Hshadow = n_cr = glob_time = pressure = n = dissipK = TmpStabEps = r_cut2 = localT = dumpDT = endT = dt = eff = R = Tmp = L.x = L.y = L.z = E.x = E.y = 0;
+	n_cr = glob_time = pressure = n = dissipK = TmpStabEps = r_cut2 = localT = dumpDT = endT = dt = eff = R = Tmp = L.x = L.y = L.z = E.x = E.y = E.z = 0;
 	TmpStabGap = Nslice = Nfrm = Nthreads = Ntot = Fnum = compMode = binOutF = useCuda = Ek_is_valid = Ep_is_valid = P_is_valid = 0;
 	hostXreal = devX = hostX = nullptr;
 	devV = hostV = nullptr;
@@ -226,7 +226,7 @@ int TSpace::ResizeStars(int _n)
 	if(_n != Ntot){
 
 		int szf3 = sizeof(double3)*_n;
-		int szf2 = sizeof(double2)*_n;
+		//int szf2 = sizeof(double2)*_n;
 		int szf1 = sizeof(double)*_n;
 
 		hostPressure = (double*)malloc(szf1);
@@ -264,7 +264,7 @@ int TSpace::ResizeStars(int _n)
 		hostA = (double3*)malloc(szf3);
 		if(!hostA) return NULLmalloc;
 
-		hostE = (double2*)malloc(szf2);
+		hostE = (double3*)malloc(szf3);
 		if(!hostE) return NULLmalloc;
 
 		if(useCuda){
@@ -272,7 +272,7 @@ int TSpace::ResizeStars(int _n)
 			CUDA_CHECK(cudaMalloc((void**)&devX,szf3));
 			CUDA_CHECK(cudaMalloc((void**)&devV,szf3));
 			CUDA_CHECK(cudaMalloc((void**)&devA,szf3));
-			CUDA_CHECK(cudaMalloc((void**)&devE,szf2));
+			CUDA_CHECK(cudaMalloc((void**)&devE,szf3));
 		}
 
 		Ntot = _n;
@@ -723,7 +723,7 @@ int TSpace::saveDump(ofstream &FoutT, ofstream &FoutE, ofstream &FoutP, string &
     b_i = useCuda ? cudaDoEstep() : doEstep();
     if(b_i) return b_i;
 
-    FoutE << E.x << " " << E.y << " " << (E.x + E.y) << " " << (Hshadow + E.x + E.y) << endl;
+    FoutE << E.x << " " << E.y << " " << (E.x + E.y) << " " << (E.x + E.y + E.z) << endl;
     sayLog("      Energy computed & saved\n");
 
 	b_i = computePressure();
@@ -1177,34 +1177,45 @@ int TSpace::computePressure(void)
 
 int TSpace::computeEp(void)
 {
-	unsigned int i, j, i_rev;
-	double3 r, m_x_curr;
-	double r2, E_loc = 0;
+	unsigned int i, j;
+	double3 r, m_r_curr, m_v_curr, dv;
+	double r2, E_loc = 0, H_loc = 0;
 	double D = 2*R;
-
-	E.y = 0;
-	for(i = 0; i < Ntot; ++i){
-		hostE[i].y = 0;
-	}
 
 // this openmp is checked - it has no influence on accuracy
 #ifdef _OPENMP
-	#pragma omp parallel for private(r2, j, r, m_x_curr, i_rev) schedule(guided) reduction(+: E_loc)
+	#pragma omp parallel for private(r2, j, r, m_r_curr, m_v_curr, dv) schedule(guided) reduction(+: E_loc, H_loc)
 #endif
 	for(i = 0; i < Ntot; ++i){
-		i_rev = Ntot - 1 - i;
-		m_x_curr = -hostX[i_rev];
-		for(j = i_rev + 1; j < Ntot; ++j){
-			r = shiftR(hostX[j] + m_x_curr, R, D);
+		m_r_curr = -hostX[i];
+		m_v_curr = -hostV[i];
+		for(j = 0; j < i; ++j){
+			r = shiftR(hostX[j] + m_r_curr, R, D);
 			r2 = dot(r,r);
-			if(r2 < r_cut2)
-				//hostE[i_rev].y += getEp(r2);
+			if(r2 < r_cut2){
+				r2 = 1 / r2;
+				dv = hostV[j] + m_v_curr;
+				H_loc += getd2H(r2, r, dv, m_v_curr);
 				E_loc += getEp(r2);
+			}
+		}
+		for(j = i + 1; j < Ntot; ++j){
+			r = shiftR(hostX[j] + m_r_curr, R, D);
+			r2 = dot(r);
+			if(r2 < r_cut2){
+				r2 = 1 / r2;
+				dv = hostV[j] + m_v_curr;
+				H_loc += getd2H(r2, r, dv, m_v_curr);
+			}
 		}
 	}
-	//for(i = 0; i < Ntot; ++i) E.y += hostE[i].y;
-	E.y = E_loc;
-	E.y -= getEp(r_cut2) * Ntot * (Ntot - 1) / 2; // substract Ecut
+	// E_loc and H_loc are already summed thanks to reduction(+:E_loc) in the OMP initiation
+	E.y = E_loc - getEp(1 / r_cut2) * Ntot * (Ntot - 1) / 2; // substract Ecut
+
+	E.z = 0;
+	for(i = 0; i < Ntot; ++i)
+		E.z += dot(hostA[i], hostA[i]);
+	E.z = (H_loc * 2 - E.z / 2) * (dt*dt/12);
 
 	if(std::abs(E.y) == INFINITY) return EpIsInf;
 	if((E.y == NAN) || (E.y == -NAN)) return EpIsNan;
@@ -1222,34 +1233,41 @@ int TSpace::doEstep(void)
 	if(err_handl) return err_handl;
 	err_handl = computeEp();
 	if(err_handl) return err_handl;
-
+/*
 	double D = 2*R;
-	double3 dr, dv;
-	double r2, r4, r6;
-	unsigned int i, j, i_rev;
+	double3 dr, dv, m_x_curr;
+	double r2, E_local = 0;
+	unsigned int i, j;
 #ifdef _OPENMP
-	#pragma omp parallel for private(r2, r4, r6, j, dr, dv, i_rev) schedule(guided)
+	#pragma omp parallel for private(r2, j, dr, dv) schedule(guided) reduction(+: E_local)
 #endif
 	for(i = 0; i < Ntot; ++i){
-		i_rev = Ntot - 1 - i;
-		hostH[i_rev] = 0;
-		for(j = i_rev + 1; j < Ntot; ++j){
-			dr = shiftR(hostX[i_rev] - hostX[j], R, D);
-			dv = hostV[i_rev] - hostV[j];
-			r2 = 1 / dot(dr);
-			r4 = r2 * r2;
-			r6 = r4 * r2;
-
-			hostH[i] += (pow2(dot(dv, dr))*(7*r6-2)*r2*4 + dot(dv, dv)*(1-2*r6))*r4*r4*48;
+		m_x_curr =  -hostX[i];
+		for(j = 0; j < i; ++j){
+			dr = shiftR(hostX[j] + m_x_curr, R, D);
+			r2 = dot(dr);
+			if(r2 < r_cut2){
+				dv = hostV[i] - hostV[j];
+				E_local += getd2H(1 / r2, dr, dv, hostV[i]);
+			}
 		}
-		hostH[i_rev] -= dot(hostA[i_rev], hostA[i_rev])*0.5;
+		for(j = i + 1; j < Ntot; ++j){
+			dr = shiftR(hostX[j] + m_x_curr, R, D);
+			r2 = dot(dr);
+			if(r2 < r_cut2){
+				dv = hostV[i] - hostV[j];
+				E_local += getd2H(1 / r2, dr, dv, hostV[i]);
+			}
+		}
 	}
-	Hshadow = 0;
-	for(i = 0; i < Ntot; ++i)
-		Hshadow += hostH[i];
-	Hshadow *=  (dt*dt/12);
 
+	E.z = 0;
+	for(i = 0; i < Ntot; ++i){
+		E.z += dot(hostA[i], hostA[i]);
+	}
 
+	E.z = (E_local * 2 - E.z / 2) * (dt*dt/12);
+*/
     return 0;
 }
 
@@ -1262,11 +1280,18 @@ int TSpace::cudaDoEstep(void)
 	CUDA_CHECK(cudaMemcpy(devV, hostV, Ntot * sizeof(double3), cudaMemcpyHostToDevice));
 	kernel_FindE<<< nCudaB,BlockW >>>(devX, devV, devE, R, r_cut2, Ntot);
 	CUDA_CHECK(cudaDeviceSynchronize());
-	CUDA_CHECK(cudaMemcpy(hostE, devE, nCudaB * sizeof(double2), cudaMemcpyDeviceToHost));
-	E.x = E.y = 0;
+	CUDA_CHECK(cudaMemcpy(hostE, devE, nCudaB * sizeof(double3), cudaMemcpyDeviceToHost));
+	E.x = E.y = E.z = 0;
 	for(i = 0; i < nCudaB; ++i) E += hostE[i];
+
 	E.y /= 2; // because we summed all pairs 2 twice in CUDA
-	Tmp_curr = 2.0/3 * E.x/Ntot;
+
+	double f2 = 0;
+	for(i = 0; i < Ntot; ++i) f2 += dot(hostA[i], hostA[i]);
+	f2 /= 2;
+	E.z = (E.z * 2 - f2) * (dt * dt / 12);
+
+	Tmp_curr = 2.0/3 * E.x / Ntot;
 	Ek_is_valid = 1;
 	Ep_is_valid = 1;
 
@@ -1278,32 +1303,37 @@ int TSpace::cudaDoEstep(void)
     return 0;
 }
 
-__global__ void kernel_FindE(double3 *devX, double3 *devV, double2 *devE, double R, double r_cut2, int Ntot)
+__global__ void kernel_FindE(double3 *devX, double3 *devV, double3 *devE, double R, double r_cut2, int Ntot)
 {
-	__shared__ double3 c1[BlockW], c2[BlockW], v1[BlockW];
-	__shared__ double2 e1[BlockW];
+	__shared__ double3 c1[BlockW], c2[BlockW], v1[BlockW], v2[BlockW];
+	__shared__ double3 e1[BlockW];
 	int gind = BlockW * blockIdx.x + threadIdx.x;
 
 	if(gind >= Ntot) return;
 
 	int tind, tile, i, tx = threadIdx.x;
-	double3 r;
+	double3 r, dv;
 	double r2, D = 2 * R;
+	double r_cut2_inv = 1 / r_cut2;
 	c1[tx] = -devX[gind];
 	v1[tx] = devV[gind];
-	e1[tx].x = dot(v1[tx]) * 0.5;
+	e1[tx].x = dot(v1[tx], v1[tx]) * 0.5;
 	e1[tx].y = 0;
+	e1[tx].z = 0;
 
 	for(tile = 0; tile * BlockW + tx < Ntot; ++tile){
 		tind = tile * BlockW + tx;
 		c2[tx] = devX[tind];
+		v2[tx] = devV[tind];
 		__syncthreads();
 		for(i = 0; i < BlockW; ++i){
 			if(tile * BlockW + i != gind){
 				r = shiftR(c2[i] + c1[tx], R, D);
-				r2 = dot(r, r);
-				if(r2 < r_cut2){
+				dv = v2[i] - v1[tx];
+				r2 = 1 / dot(r, r);
+				if(r2 > r_cut2_inv){
 					e1[tx].y += getEp(r2);
+					e1[tx].z += getd2H(r2, r, dv, v1[tx]);
 				}
 			}
 		}
@@ -1316,6 +1346,7 @@ __global__ void kernel_FindE(double3 *devX, double3 *devV, double2 *devE, double
 			tind = tx + i;
 			e1[tx].x += e1[tind].x;
 			e1[tx].y += e1[tind].y;
+			e1[tx].z += e1[tind].z;
 		}
 		__syncthreads();
 		i /= 2;
@@ -1328,6 +1359,7 @@ __global__ void kernel_FindE(double3 *devX, double3 *devV, double2 *devE, double
 	if(tx==0){
 		devE[blockIdx.x].x = e1[0].x;
 		devE[blockIdx.x].y = e1[0].y;
+		devE[blockIdx.x].z = e1[0].z;
 	}
 }
 /*
