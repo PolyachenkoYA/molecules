@@ -1233,42 +1233,8 @@ int TSpace::doEstep(void)
 	if(err_handl) return err_handl;
 	err_handl = computeEp();
 	if(err_handl) return err_handl;
-/*
-	double D = 2*R;
-	double3 dr, dv, m_x_curr;
-	double r2, E_local = 0;
-	unsigned int i, j;
-#ifdef _OPENMP
-	#pragma omp parallel for private(r2, j, dr, dv) schedule(guided) reduction(+: E_local)
-#endif
-	for(i = 0; i < Ntot; ++i){
-		m_x_curr =  -hostX[i];
-		for(j = 0; j < i; ++j){
-			dr = shiftR(hostX[j] + m_x_curr, R, D);
-			r2 = dot(dr);
-			if(r2 < r_cut2){
-				dv = hostV[i] - hostV[j];
-				E_local += getd2H(1 / r2, dr, dv, hostV[i]);
-			}
-		}
-		for(j = i + 1; j < Ntot; ++j){
-			dr = shiftR(hostX[j] + m_x_curr, R, D);
-			r2 = dot(dr);
-			if(r2 < r_cut2){
-				dv = hostV[i] - hostV[j];
-				E_local += getd2H(1 / r2, dr, dv, hostV[i]);
-			}
-		}
-	}
 
-	E.z = 0;
-	for(i = 0; i < Ntot; ++i){
-		E.z += dot(hostA[i], hostA[i]);
-	}
-
-	E.z = (E_local * 2 - E.z / 2) * (dt*dt/12);
-*/
-    return 0;
+	return 0;
 }
 
 int TSpace::cudaDoEstep(void)
@@ -1288,8 +1254,7 @@ int TSpace::cudaDoEstep(void)
 
 	double f2 = 0;
 	for(i = 0; i < Ntot; ++i) f2 += dot(hostA[i], hostA[i]);
-	f2 /= 2;
-	E.z = (E.z * 2 - f2) * (dt * dt / 12);
+	E.z = (E.z * 2 - f2 / 2) * (dt * dt / 12);
 
 	Tmp_curr = 2.0/3 * E.x / Ntot;
 	Ek_is_valid = 1;
@@ -1314,9 +1279,8 @@ __global__ void kernel_FindE(double3 *devX, double3 *devV, double3 *devE, double
 	int tind, tile, i, tx = threadIdx.x;
 	double3 r, dv;
 	double r2, D = 2 * R;
-	double r_cut2_inv = 1 / r_cut2;
 	c1[tx] = -devX[gind];
-	v1[tx] = devV[gind];
+	v1[tx] = -devV[gind];
 	e1[tx].x = dot(v1[tx], v1[tx]) * 0.5;
 	e1[tx].y = 0;
 	e1[tx].z = 0;
@@ -1329,9 +1293,9 @@ __global__ void kernel_FindE(double3 *devX, double3 *devV, double3 *devE, double
 		for(i = 0; i < BlockW; ++i){
 			if(tile * BlockW + i != gind){
 				r = shiftR(c2[i] + c1[tx], R, D);
-				dv = v2[i] - v1[tx];
-				r2 = 1 / dot(r, r);
-				if(r2 > r_cut2_inv){
+				if(r2 < r_cut2){
+					dv = v2[i] + v1[tx];
+					r2 = 1 / dot(r, r);
 					e1[tx].y += getEp(r2);
 					e1[tx].z += getd2H(r2, r, dv, v1[tx]);
 				}
