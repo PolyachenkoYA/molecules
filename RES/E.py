@@ -65,7 +65,7 @@ def main():
     
     # shadow error
     E0 = np.mean(E[N0:N1,0]) + abs(np.mean(E[N0:N1,1]))
-    path = os.path.join(graph_dir, 'Hshd_norm_' + time_gaps_str + '.png')
+    path = os.path.join(graph_dir, 'dH_norm_' + time_gaps_str + '.png')
     H_av = np.mean(E[N0:N1,3])
     y = [(e_el/H_av - 1) for e_el in E[N0:N1,3]]
     #print(E[N0:N1, :])
@@ -80,7 +80,7 @@ def main():
                ncol=2, mode="expand", borderaxespad=0.)
     if(draw_on_screen):
         fig[fig_c].show()
-    path = os.path.join(graph_dir, 'Energy_H_' + time_gaps_str + '.png')
+    path = os.path.join(graph_dir, 'E_H_' + time_gaps_str + '.png')
     fig[fig_c].savefig(path)
     
     # shadow term
