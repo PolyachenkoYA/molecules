@@ -1,11 +1,3 @@
-#!/home/ypolyach/anaconda3/bin/python3 -tt
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0
-# http://www.apache.org/licenses/LICENSE-2.0
-
-# Google's Python Class
-# http://code.google.com/edu/languages/google-python-class/
-
 import sys
 import numpy as np
 import math
@@ -20,7 +12,7 @@ def main():
     argc_min = 0
     argc = len(args)
     if(argc < argc_min):
-        print('usage: ./cycle.py')
+        print('usage:\npython cycle.py')
         sys.exit(1)
             
     n = [0.01, 0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.5, 0.6, 0.7]
@@ -43,12 +35,12 @@ def main():
         for Ti in T:
             new_name = 'N2048/n' + my.str_sgn_round(ni, 3) + '_Tmp' + my.str_sgn_round(Ti, 3)
             
-            #os.system('./E.py ' + new_name + ' -')
+            #os.system('python E.py ' + new_name + ' -')
             
-            if(not my.run_it('./diffusion.py ' + new_name + ' -pics-percent')):
+            if(not my.run_it('python diffusion.py ' + new_name + ' -pics-percent')):
                 return
-            #os.system('./diffusion.py ' + new_name + ' -') # just lmd(n,T)
-            #os.system('./E.py ' + new_name + ' -full-pics')
+            #os.system('python diffusion.py ' + new_name + ' -') # just lmd(n,T)
+            #os.system('python E.py ' + new_name + ' -full-pics')
             
             #os.system('cp -rv ./bfr_N100/' + new_name + '/graph ./11/' + new_name)
             

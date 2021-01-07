@@ -372,7 +372,7 @@ def full_cycle_fnc(input_params_name, model_name, keys, args):
         print(command_to_run)
         os.chdir('./RES')   
         
-        run_it('./full_post_proc.py ' + model_name + ' ' + extra_args_str)
+        run_it('python full_post_proc.py ' + model_name + ' ' + extra_args_str)
 
 
 

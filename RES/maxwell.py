@@ -1,11 +1,3 @@
-#!/home/ypolyach/anaconda3/bin/python3 -tt
-# Copyright 2010 Google Inc.
-# Licensed under the Apache License, Version 2.0
-# http://www.apache.org/licenses/LICENSE-2.0
-
-# Google's Python Class
-# http://code.google.com/edu/languages/google-python-class/
-
 import sys
 import numpy as np
 import math
@@ -21,7 +13,7 @@ def main():
     args = sys.argv[1:]
     argc_min = 2
     if len(args) < argc_min:
-        print('usage: ./maxwell.py    model_name    N_V_steps    [keys,    N0,    N1]')
+        print('usage: python maxwell.py    model_name    N_V_steps    [keys,    N0,    N1]')
         sys.exit(1)
         
     model_name, keys, model_dir, graph_dir, time_gaps_str, N0, N1, Nfrm, E, P, Tmp, Tmp_av, t, stabTind, params = my.std_start(args, 0, 2, 3, 4)

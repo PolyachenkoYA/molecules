@@ -104,13 +104,13 @@ def main():
             endT = Nrep/512
             dumpDT = 2/endT
             if(use_gpu):
-                if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni) + ' endT ' + str(endT) + ' dumpDT ' + str(dumpDT))):
+                if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni) + ' endT ' + str(endT) + ' dumpDT ' + str(dumpDT))):
                     return
             else:
-                if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni) + ' Nthreads ' + str(Npi) + ' endT ' + str(endT) + ' dumpDT ' + str(dumpDT))):
+                if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni) + ' Nthreads ' + str(Npi) + ' endT ' + str(endT) + ' dumpDT ' + str(dumpDT))):
                     return
 
-            if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-move_res')):
+            if(not my.run_it('python full_cycle.py ' + new_name + ' -gen-move_res')):
                 return
         
             if(not my.run_it('rm ' + new_name + '_param.dat')):
@@ -125,9 +125,9 @@ def main():
 
         # if(not my.run_it('cp tst_particles.xyz.0 ' + new_name + '_particles.xyz')):
             # return                            
-        # if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' dissipK ' + str(-ni))):
+        # if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' dissipK ' + str(-ni))):
             # return        
-        # if(not my.run_it('./full_cycle.py ' + new_name + ' -pics-energy')):
+        # if(not my.run_it('python full_cycle.py ' + new_name + ' -pics-energy')):
             # return
     
         # if(not my.run_it('rm ' + new_name + '_param.dat')):
@@ -140,9 +140,9 @@ def main():
         #for ni in n:
             #new_name = 'T' + str(Ti) + '_n' + str(ni)
                 
-            #if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Tmp ' + str(Ti) + ' n ' + str(ni))):
+            #if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' Tmp ' + str(Ti) + ' n ' + str(ni))):
                 #return        
-            #if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-pics-energy')):
+            #if(not my.run_it('python full_cycle.py ' + new_name + ' -gen-pics-energy')):
                 #return
         
             #if(not my.run_it('rm ' + new_name + '_param.dat')):
@@ -155,9 +155,9 @@ def main():
     #for Ni in N_arr:
         #new_name = 'N' + str(Ni)
             
-        #if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni))):
+        #if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' Ntot ' + str(Ni))):
             #return        
-        #if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-pics-energy')):
+        #if(not my.run_it('python full_cycle.py ' + new_name + ' -gen-pics-energy')):
             #return
     
         #if(not my.run_it('rm ' + new_name + '_param.dat')):
@@ -169,9 +169,9 @@ def main():
         #for ni in n:
             #new_name = 'T' + str(Ti) + '_n' + str(ni)
                 
-            #if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' n ' + str(ni) + ' Tmp ' + str(Ti))):
+            #if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' n ' + str(ni) + ' Tmp ' + str(Ti))):
                 #return        
-            #if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-pics-enegry')):
+            #if(not my.run_it('python full_cycle.py ' + new_name + ' -gen-pics-enegry')):
                 #return
         
             #if(not my.run_it('rm ' + new_name + '_param.dat')):
@@ -190,11 +190,11 @@ def main():
         #for dti in dt_arr:
             #new_name = 'dt' + str(dti) + '_' + str(i)
                 
-            #if(not my.run_it('./change_params.py ' + new_base_name + ' ' + new_name + ' dt ' + str(dti))):
+            #if(not my.run_it('python change_params.py ' + new_base_name + ' ' + new_name + ' dt ' + str(dti))):
                 #return
             #if(not my.run_it('cp ' + new_base_name + '_' + my.particles_file_suff + ' ' + new_name + '_' + my.particles_file_suff)):
                 #return
-            #if(not my.run_it('./full_cycle.py ' + new_name + ' -move_res')):
+            #if(not my.run_it('python full_cycle.py ' + new_name + ' -move_res')):
                 #return
         
             #if(not my.run_it('rm ' + new_name + '_' + my.param_file_suff)):
@@ -213,9 +213,9 @@ def main():
     #for ri in rc:
         #new_name = 'rc' + str(ri)
             
-        #if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' r_max ' + str(ri))):
+        #if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' r_max ' + str(ri))):
             #return        
-        #if(not my.run_it('./full_cycle.py ' + new_name + ' -gen-pics-enegry')):
+        #if(not my.run_it('python full_cycle.py ' + new_name + ' -gen-pics-enegry')):
             #return
     
         #if(not my.run_it('rm ' + new_name + '_param.dat')):
@@ -227,10 +227,10 @@ def main():
     #for dti in dt_arr:
         #new_name = 'dt' + str(dti)
             
-        ##if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' dt ' + str(dti) + ' dumpDT ' + str(dmp_i))):
-        #if(not my.run_it('./change_params.py ' + base_param_name + ' ' + new_name + ' dt ' + str(dti))):
+        ##if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' dt ' + str(dti) + ' dumpDT ' + str(dmp_i))):
+        #if(not my.run_it('python change_params.py ' + base_param_name + ' ' + new_name + ' dt ' + str(dti))):
             #return        
-        #if(not my.run_it('./full_cycle.py ' + new_name + ' -energy-pics-gen')):
+        #if(not my.run_it('python full_cycle.py ' + new_name + ' -energy-pics-gen')):
             #return
     
         #if(not my.run_it('rm ' + new_name + '_param.dat')):
