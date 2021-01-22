@@ -1,21 +1,3 @@
-//============================================================================
-// Name        : comp.cpp
-// Author      : 
-// Version     :
-// Copyright   : Your copyright notice
-// Description : Hello World in C++, Ansi-style
-//============================================================================
-
-/*
- ============================================================================
- Name        : calc.cu
- Author      : yura
- Version     :
- Copyright   : Your copyright notice
- Description : CUDA compute reciprocals
- ============================================================================
- */
-
 #include "../../Space.cuh"
 
 int main(int argc, char* argv[])

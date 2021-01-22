@@ -1,10 +1,3 @@
-/*
- * Space.cuh
- *
- *  Created on: Jul 7, 2016
- *      Author: polyachyadt
- */
-
 #pragma once
 
 #ifndef SPACE_CUH_

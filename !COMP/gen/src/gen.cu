@@ -1,13 +1,3 @@
-/*
- ============================================================================
- Name        : gen.cu
- Author      : PolyachYA
- Version     :
- Copyright   : Your copyright notice
- Description : CUDA compute reciprocals
- ============================================================================
- */
-
 #include "../../Space.cuh"
 
 int main(int argc, char* argv[])
